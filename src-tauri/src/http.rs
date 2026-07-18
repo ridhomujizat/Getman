@@ -121,7 +121,10 @@ pub async fn send_request(req: GetmanRequest) -> Result<GetmanResponse, HttpErro
         }
     }
 
-    let mut builder = client.request(method, &req.url).query(&query);
+    let mut url = reqwest::Url::parse(&req.url)
+        .map_err(|e| HttpError::InvalidUrl(format!("Invalid URL: {e}")))?;
+    url.query_pairs_mut().clear().extend_pairs(&query);
+    let mut builder = client.request(method, url);
 
     for h in req.headers.iter().filter(|h| h.enabled && !h.key.is_empty()) {
         builder = builder.header(&h.key, &h.value);

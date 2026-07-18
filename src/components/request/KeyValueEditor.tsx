@@ -18,7 +18,14 @@ export function KeyValueEditor({ rows, onChange, showDescription = true }: Props
   };
 
   return (
-    <div>
+    <div className="kv-editor">
+      <div className="kv-header">
+        <span />
+        <span>KEY</span>
+        <span>VALUE</span>
+        {showDescription && <span>DESCRIPTION</span>}
+        <span />
+      </div>
       {rows.map((row) => (
         <div key={row.id} className={`kv-row${row.enabled ? '' : ' disabled'}`}>
           <input

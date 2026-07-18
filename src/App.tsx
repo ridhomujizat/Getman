@@ -65,7 +65,7 @@ export default function App() {
       <Sidebar />
       <main className="main">
         <RequestBuilder onSend={onSend} onCancel={onCancel} />
-        <ResponseViewer />
+        <ResponseViewer onRetry={onSend} />
       </main>
     </div>
   );

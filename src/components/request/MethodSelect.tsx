@@ -1,5 +1,6 @@
 import type { Method } from '../../types';
 import { METHODS, methodColor } from '../../lib/methods';
+import { ChevronDown } from 'lucide-react';
 
 interface Props {
   value: Method;
@@ -21,6 +22,7 @@ export function MethodSelect({ value, onChange }: Props) {
           </option>
         ))}
       </select>
+      <ChevronDown className="method-chevron" size={13} />
     </div>
   );
 }

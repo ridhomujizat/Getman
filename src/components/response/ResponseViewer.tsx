@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { JsonView, darkStyles } from 'react-json-view-lite';
+import { JsonView, collapseAllNested } from 'react-json-view-lite';
 import 'react-json-view-lite/dist/index.css';
-import { Copy, Inbox } from 'lucide-react';
+import { ClockAlert, Copy, RotateCw, SendHorizontal } from 'lucide-react';
 import { useRequestStore } from '../../store/requestStore';
 import { StatusBadge } from './StatusBadge';
 import { HeadersTable } from './HeadersTable';
@@ -9,7 +9,14 @@ import { formatBytes } from '../../lib/http';
 
 type Tab = 'body' | 'headers';
 
-export function ResponseViewer() {
+const jsonStyles = {
+  container: 'json-tree', basicChildStyle: 'json-child', childFieldsContainer: 'json-children',
+  label: 'json-key', clickableLabel: 'json-key', nullValue: 'json-literal', undefinedValue: 'json-literal',
+  stringValue: 'json-string', booleanValue: 'json-literal', numberValue: 'json-number', otherValue: 'json-string',
+  punctuation: 'json-punctuation', collapseIcon: 'json-collapse', expandIcon: 'json-expand', collapsedContent: 'json-collapsed',
+};
+
+export function ResponseViewer({ onRetry }: { onRetry: () => void }) {
   const { response, error, loading } = useRequestStore();
   const [tab, setTab] = useState<Tab>('body');
   const [raw, setRaw] = useState(false);
@@ -17,9 +24,9 @@ export function ResponseViewer() {
   if (loading && !response) {
     return (
       <div className="response">
-        <div className="empty-state">
-          <span className="spinner" style={{ borderTopColor: 'var(--accent)' }} />
-          Sending request…
+        <div className="loading-bar"><span className="spinner accent-spinner" />Sending request…</div>
+        <div className="response-skeleton">
+          {[180, 320, 260, 300, 150, 340, 220, 280, 200].map((width) => <i key={width} style={{ width }} />)}
         </div>
       </div>
     );
@@ -28,7 +35,12 @@ export function ResponseViewer() {
   if (error) {
     return (
       <div className="response">
-        <div className="empty-state error-state">{error}</div>
+        <div className="empty-state response-error">
+          <span className="error-icon"><ClockAlert size={26} /></span>
+          <strong>{error.includes('timed out') ? 'Request timed out' : 'Request failed'}</strong>
+          <p>{error.includes('timed out') ? 'No response after 30s. The server may be slow or unreachable — check the URL and try again.' : error}</p>
+          <button className="outlined-btn" onClick={onRetry}><RotateCw size={13} /> Retry</button>
+        </div>
       </div>
     );
   }
@@ -37,8 +49,9 @@ export function ResponseViewer() {
     return (
       <div className="response">
         <div className="empty-state">
-          <Inbox size={20} />
-          Hit Send to see the response
+          <SendHorizontal size={34} />
+          <strong>Hit Send to see the response</strong>
+          <span>or press <kbd>⌘ Enter</kbd></span>
         </div>
       </div>
     );
@@ -69,25 +82,18 @@ export function ResponseViewer() {
         </span>
       </div>
 
-      <div className="tabs">
-        <button className={`tab${tab === 'body' ? ' active' : ''}`} onClick={() => setTab('body')}>
-          Body
-        </button>
-        <button
-          className={`tab${tab === 'headers' ? ' active' : ''}`}
-          onClick={() => setTab('headers')}
-        >
-          Headers<span className="count"> · {Object.keys(response.headers).length}</span>
-        </button>
+      <div className="response-tabs">
+        <div className="tabs borderless">
+          <button className={`tab${tab === 'body' ? ' active' : ''}`} onClick={() => setTab('body')}>Body</button>
+          <button className={`tab${tab === 'headers' ? ' active' : ''}`} onClick={() => setTab('headers')}>
+            Headers<span className="count"> · {Object.keys(response.headers).length}</span>
+          </button>
+        </div>
         <div className="resp-actions">
-          {tab === 'body' && parsed != null && (
-            <button className="btn-ghost" onClick={() => setRaw((r) => !r)}>
-              {raw ? 'Pretty' : 'Raw'}
-            </button>
-          )}
+          {tab === 'body' && parsed != null && <div className="segmented compact"><button className={!raw ? 'active' : ''} onClick={() => setRaw(false)}>Pretty</button><button className={raw ? 'active' : ''} onClick={() => setRaw(true)}>Raw</button></div>}
           {tab === 'body' && (
-            <button className="btn-ghost" onClick={copy} title="Copy">
-              <Copy size={13} />
+            <button className="copy-button" onClick={copy} title="Copy response">
+              <Copy size={13} /> Copy
             </button>
           )}
         </div>
@@ -98,7 +104,7 @@ export function ResponseViewer() {
           <HeadersTable headers={response.headers} />
         ) : parsed != null && !raw ? (
           <div className="json-wrap">
-            <JsonView data={parsed as object} style={darkStyles} />
+            <JsonView data={parsed as object} style={jsonStyles} shouldExpandNode={collapseAllNested} />
           </div>
         ) : (
           <pre className="raw-body">{response.body || '(empty body)'}</pre>

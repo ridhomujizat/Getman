@@ -29,6 +29,8 @@ interface State {
   setResponse: (r: GetmanResponse | null) => void;
   setError: (e: string | null) => void;
   setLoading: (v: boolean) => void;
+  replaceRequest: (request: GetmanRequest) => void;
+  createRequest: () => void;
 }
 
 export const useRequestStore = create<State>((set) => ({
@@ -49,4 +51,6 @@ export const useRequestStore = create<State>((set) => ({
   setResponse: (response) => set({ response }),
   setError: (error) => set({ error }),
   setLoading: (loading) => set({ loading }),
+  replaceRequest: (request) => set({ request, response: null, error: null }),
+  createRequest: () => set({ request: newRequest(), response: null, error: null }),
 }));

@@ -1,3 +1,4 @@
+import { WandSparkles } from 'lucide-react';
 import type { Body, BodyType } from '../../types';
 import { KeyValueEditor } from './KeyValueEditor';
 
@@ -5,8 +6,8 @@ const TYPES: { value: BodyType; label: string }[] = [
   { value: 'none', label: 'None' },
   { value: 'json', label: 'JSON' },
   { value: 'text', label: 'Text' },
-  { value: 'form-data', label: 'Form Data' },
-  { value: 'x-www-form-urlencoded', label: 'x-www-form-urlencoded' },
+  { value: 'form-data', label: 'Form' },
+  { value: 'x-www-form-urlencoded', label: 'URL-encoded' },
 ];
 
 interface Props {
@@ -29,19 +30,20 @@ export function BodyEditor({ body, onChange }: Props) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div className="body-toolbar">
-        <select
-          value={body.type}
-          onChange={(e) => onChange({ ...body, type: e.target.value as BodyType })}
-        >
+        <div className="segmented" aria-label="Body type">
           {TYPES.map((t) => (
-            <option key={t.value} value={t.value}>
+            <button
+              key={t.value}
+              className={body.type === t.value ? 'active' : ''}
+              onClick={() => onChange({ ...body, type: t.value as BodyType })}
+            >
               {t.label}
-            </option>
+            </button>
           ))}
-        </select>
+        </div>
         {body.type === 'json' && (
-          <button className="btn-ghost" onClick={beautify}>
-            Beautify
+          <button className="outlined-btn" onClick={beautify}>
+            <WandSparkles size={13} /> Beautify
           </button>
         )}
       </div>

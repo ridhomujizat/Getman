@@ -1,5 +1,6 @@
 import { useRequestStore } from '../../store/requestStore';
 import { MethodSelect } from './MethodSelect';
+import { parseCurl } from '../../lib/curl';
 
 interface Props {
   onSend: () => void;
@@ -7,7 +8,7 @@ interface Props {
 }
 
 export function UrlBar({ onSend, onCancel }: Props) {
-  const { request, loading, setMethod, setUrl } = useRequestStore();
+  const { request, loading, setMethod, setUrl, replaceRequest } = useRequestStore();
 
   return (
     <div className="urlbar">
@@ -18,6 +19,12 @@ export function UrlBar({ onSend, onCancel }: Props) {
         spellCheck={false}
         value={request.url}
         onChange={(e) => setUrl(e.target.value)}
+        onPaste={(e) => {
+          const imported = parseCurl(e.clipboardData.getData('text'));
+          if (!imported) return;
+          e.preventDefault();
+          replaceRequest(imported);
+        }}
         onKeyDown={(e) => {
           if (e.key === 'Enter') onSend();
         }}

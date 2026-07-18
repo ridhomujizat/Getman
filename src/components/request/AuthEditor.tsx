@@ -1,3 +1,4 @@
+import { Info } from 'lucide-react';
 import type { Auth } from '../../types';
 
 interface Props {
@@ -21,14 +22,20 @@ export function AuthEditor({ auth, onChange }: Props) {
       </div>
 
       {auth.type === 'bearer' && (
-        <div className="field">
-          <label className="label-caps">Token</label>
-          <input
-            value={auth.token ?? ''}
-            onChange={(e) => set({ token: e.target.value })}
-            placeholder="token"
-          />
-        </div>
+        <>
+          <div className="field">
+            <label>Token</label>
+            <input
+              value={auth.token ?? ''}
+              onChange={(e) => set({ token: e.target.value })}
+              placeholder="token"
+            />
+          </div>
+          <div className="auth-hint">
+            <Info size={14} />
+            <span>Injected as <code>Authorization: Bearer …</code> at send time — not stored in the Headers list.</span>
+          </div>
+        </>
       )}
 
       {auth.type === 'basic' && (
