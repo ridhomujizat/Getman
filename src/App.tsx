@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { FilePlus2, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { Sidebar } from './components/layout/Sidebar';
 import { RequestBuilder } from './components/request/RequestBuilder';
 import { ResponseViewer } from './components/response/ResponseViewer';
@@ -29,13 +29,8 @@ function EmptyRequestState({ onNewRequest }: { onNewRequest: () => void }) {
   return (
     <section className="empty-request-state">
       <div className="empty-request-content">
-        <span className="empty-request-icon"><FilePlus2 size={24} /></span>
-        <div className="empty-request-copy">
-          <strong>No request selected</strong>
-          <p>Choose a request from Collections or start a new one to begin building.</p>
-        </div>
-        <button className="empty-request-primary" onClick={onNewRequest}><Plus size={14} /> New request</button>
-        <span className="empty-request-shortcut">Shortcut <kbd>⌘ T</kbd></span>
+        <span className="empty-request-label">No request selected</span>
+        <button className="empty-request-primary" onClick={onNewRequest}><Plus size={12} /> New request</button>
       </div>
     </section>
   );

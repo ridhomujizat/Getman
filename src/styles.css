@@ -53,14 +53,10 @@ code, .mono { font-family: var(--font-mono); }
 .main { display: grid; grid-template-rows: minmax(330px, 55%) minmax(220px, 45%); flex: 1; min-width: 0; min-height: 0; }
 .main.empty-request-main { display: flex; }
 .empty-request-state { display: flex; flex: 1; min-width: 0; min-height: 0; flex-direction: column; background: var(--bg-app); }
-.empty-request-content { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 32px; text-align: center; }
-.empty-request-icon { display: grid; width: 56px; height: 56px; place-items: center; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-panel); color: var(--accent); }
-.empty-request-copy { display: flex; max-width: 360px; flex-direction: column; gap: 6px; }
-.empty-request-copy strong { color: var(--text-primary); font-size: 16px; font-weight: 600; }
-.empty-request-copy p { color: var(--text-secondary); font-size: 12px; }
-.empty-request-primary { display: flex; align-items: center; justify-content: center; gap: 7px; min-width: 126px; height: 34px; padding: 0 12px; border-radius: 7px; background: var(--accent); color: var(--bg-app); font-size: 13px; font-weight: 700; }
-.empty-request-primary:hover { background: #83a9ff; }
-.empty-request-shortcut { display: flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: 11px; }
+.empty-request-content { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; gap: 9px; padding: 24px; text-align: center; }
+.empty-request-label { color: var(--text-muted); font-size: 11px; }
+.empty-request-primary { display: flex; align-items: center; justify-content: center; gap: 5px; height: 28px; padding: 0 9px; border: 1px solid var(--border); border-radius: var(--radius); color: var(--text-muted); font-size: 11px; }
+.empty-request-primary:hover { background: var(--bg-panel); color: var(--text-secondary); }
 
 .sidebar { display: flex; flex: 0 0 260px; flex-direction: column; min-width: 0; background: var(--bg-panel); border-right: 1px solid var(--border); }
 .sidebar-header { display: flex; align-items: center; gap: 4px; min-height: 45px; padding: 8px 10px; border-bottom: 1px solid var(--border); }
