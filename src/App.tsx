@@ -207,7 +207,7 @@ export default function App() {
     <div className="shell">
       <Sidebar onToast={showToast} onWorkspaceChange={setWorkspaceView} />
       <main className={workspaceView === 'environment' ? 'main environment-main' : `main${hasActiveTab ? '' : ' empty-request-main'}`}>
-        {workspaceView === 'environment' ? <EnvironmentEditor /> : hasActiveTab ? <>
+        {workspaceView === 'environment' ? <EnvironmentEditor onToast={showToast} /> : hasActiveTab ? <>
           <RequestBuilder onSend={onSend} onCancel={onCancel} onToast={showToast} onSave={onSave} onCloseTab={requestClose} />
           <ResponseViewer onRetry={onSend} />
         </> : <EmptyRequestState onNewRequest={openNewRequest} />}

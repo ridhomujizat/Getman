@@ -7,11 +7,13 @@ import { storageProvider } from '../lib/storage/localJson';
 
 interface State {
   file: EnvironmentsFile;
+  selectedEnvironmentId: string | null;
   initialize: () => Promise<void>;
-  createEnvironment: (name: string, initial?: { key: string; value: string }) => Promise<string>;
+  createEnvironment: (name: string, initial?: { key: string; value: string }, activate?: boolean) => Promise<string>;
   duplicateEnvironment: (id: string) => Promise<string>;
   renameEnvironment: (id: string, name: string) => Promise<void>;
   deleteEnvironment: (id: string) => Promise<void>;
+  selectEnvironment: (id: string | null) => void;
   setActive: (id: string | null) => Promise<void>;
   setVariables: (id: string, variables: KeyValue[]) => Promise<void>;
   setVariable: (id: string, key: string, value: string) => Promise<void>;
@@ -29,17 +31,21 @@ function saveSoon(file: EnvironmentsFile): void {
 
 export const useEnvironmentStore = create<State>((set, get) => ({
   file: empty,
-  initialize: async () => set({ file: await storageProvider.loadEnvironments() }),
-  createEnvironment: async (name, initial) => {
+  selectedEnvironmentId: null,
+  initialize: async () => {
+    const file = await storageProvider.loadEnvironments();
+    set({ file, selectedEnvironmentId: file.activeEnvironmentId });
+  },
+  createEnvironment: async (name, initial, activate = true) => {
     const environment = {
       id: uid(),
       name: name.trim() || 'Environment',
       variables: initial?.key ? [{ ...emptyRow(), key: initial.key, value: initial.value, enabled: true }, emptyRow()] : [emptyRow()],
     };
-    const file = { ...get().file, activeEnvironmentId: environment.id, environments: [...get().file.environments, environment] };
+    const file = { ...get().file, activeEnvironmentId: activate ? environment.id : get().file.activeEnvironmentId, environments: [...get().file.environments, environment] };
     await storageProvider.saveEnvironments(file);
     window.clearTimeout(saveTimer);
-    set({ file });
+    set({ file, selectedEnvironmentId: environment.id });
     return environment.id;
   },
   duplicateEnvironment: async (id) => {
@@ -49,10 +55,10 @@ export const useEnvironmentStore = create<State>((set, get) => ({
     const index = get().file.environments.findIndex((environment) => environment.id === id);
     const environments = [...get().file.environments];
     environments.splice(index + 1, 0, duplicate);
-    const file = { ...get().file, activeEnvironmentId: duplicate.id, environments };
+    const file = { ...get().file, environments };
     await storageProvider.saveEnvironments(file);
     window.clearTimeout(saveTimer);
-    set({ file });
+    set({ file, selectedEnvironmentId: duplicate.id });
     return duplicate.id;
   },
   renameEnvironment: async (id, name) => {
@@ -65,8 +71,10 @@ export const useEnvironmentStore = create<State>((set, get) => ({
     const file = removeEnvironment(get().file, id);
     await storageProvider.saveEnvironments(file);
     window.clearTimeout(saveTimer);
-    set({ file });
+    const selectedEnvironmentId = get().selectedEnvironmentId === id ? file.activeEnvironmentId : get().selectedEnvironmentId;
+    set({ file, selectedEnvironmentId });
   },
+  selectEnvironment: (selectedEnvironmentId) => set({ selectedEnvironmentId }),
   setActive: async (activeEnvironmentId) => {
     if (get().file.activeEnvironmentId === activeEnvironmentId) return;
     const file = { ...get().file, activeEnvironmentId };
