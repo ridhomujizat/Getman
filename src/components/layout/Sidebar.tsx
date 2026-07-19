@@ -3,13 +3,14 @@ import { ChevronDown, ChevronRight, Folder, History, Layers3, Search } from 'luc
 import { useRequestStore } from '../../store/requestStore';
 import { methodColor } from '../../lib/methods';
 import { parseCurl } from '../../lib/curl';
+import { uid } from '../../lib/id';
 import type { Method } from '../../types';
 
 const groups = [
   { name: 'Payments API', open: true, requests: [
     ['GET', 'List transactions', "curl 'https://httpbin.org/get?limit=25&status=active'"],
     ['GET', 'Retrieve transaction detail', "curl 'https://httpbin.org/get?id=txn_01J8ZKQ2M4'"],
-    ['POST', 'Create charge', "curl -X POST 'https://httpbin.org/post' -H 'Content-Type: application/json' --data-raw '{\"amount\":4200,\"currency\":\"usd\"}'"],
+    ['POST', 'Upload receipt', "curl -X POST 'https://httpbin.org/post' -F 'description=Taxi receipt — July 2026' -F 'attachments=@receipt-july.png' -F 'attachments=@invoice.pdf'"],
     ['POST', 'Refund charge', "curl -X POST 'https://httpbin.org/post' --data-raw 'transaction=txn_01J8ZKQ2M4'"],
     ['PATCH', 'Update charge metadata', "curl -X PATCH 'https://httpbin.org/patch' -H 'Content-Type: application/json' --data-raw '{\"order_id\":\"1284\"}'"],
     ['DELETE', 'Delete charge', "curl -X DELETE 'https://httpbin.org/delete'"],
@@ -33,7 +34,16 @@ export function Sidebar() {
 
   const load = (curl: string, name: string) => {
     const next = parseCurl(curl);
-    if (next) replaceRequest({ ...next, name });
+    if (!next) return;
+    if (name === 'Upload receipt') {
+      const rows = next.body.formData ?? [];
+      next.body.formData = [
+        ...rows.filter((row) => row.key).map((row) => row.key === 'description' ? { ...row, description: 'Multipart text field' } : row),
+        { id: uid(), key: 'supporting_file', value: '', enabled: true, valueType: 'file', files: [], description: 'Select one file' },
+        rows.find((row) => !row.key) ?? { id: uid(), key: '', value: '', enabled: true },
+      ];
+    }
+    replaceRequest({ ...next, name });
   };
 
   return (

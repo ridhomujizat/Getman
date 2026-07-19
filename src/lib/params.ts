@@ -7,7 +7,7 @@ export const emptyRow = (): KeyValue => ({ id: uid(), key: '', value: '', enable
 // Ensure the last row is always blank so the editor auto-appends.
 export function withTrailingBlank(rows: KeyValue[]): KeyValue[] {
   const last = rows[rows.length - 1];
-  if (!last || last.key !== '' || last.value !== '') return [...rows, emptyRow()];
+  if (!last || last.key !== '' || last.value !== '' || (last.files?.length ?? 0) > 0) return [...rows, emptyRow()];
   return rows;
 }
 

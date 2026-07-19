@@ -68,7 +68,17 @@ export function parseCurl(command: string): GetmanRequest | null {
     } else if (arg === '-F' || arg === '--form') {
       const value = take(i);
       const split = value.indexOf('=');
-      formData.push(row(value.slice(0, split), value.slice(split + 1)));
+      const key = value.slice(0, split);
+      const formValue = value.slice(split + 1);
+      if (formValue.startsWith('@')) {
+        const name = formValue.slice(1).split('/').pop() || 'file';
+        const file = { name, mimeType: '', sizeBytes: 0, data: [] };
+        const existing = formData.find((item) => item.key === key && item.valueType === 'file');
+        if (existing) existing.files = [...(existing.files ?? []), file];
+        else formData.push({ ...row(key, ''), valueType: 'file', files: [file] });
+      } else {
+        formData.push(row(key, formValue));
+      }
       bodyType = 'form-data';
       if (method === 'GET') method = 'POST';
       i += 1;
@@ -126,7 +136,11 @@ export function toCurl(request: GetmanRequest): string {
   if (request.body.type === 'json' || request.body.type === 'text') parts.push('--data-raw', quote(request.body.raw ?? ''));
   if (request.body.type === 'form-data') {
     for (const item of request.body.formData?.filter((entry) => entry.enabled && entry.key) ?? []) {
-      parts.push('-F', quote(`${item.key}=${item.value}`));
+      if (item.valueType === 'file') {
+        for (const file of item.files ?? []) parts.push('-F', quote(`${item.key}=@${file.name}`));
+      } else {
+        parts.push('-F', quote(`${item.key}=${item.value}`));
+      }
     }
   }
   return parts.join(' ');

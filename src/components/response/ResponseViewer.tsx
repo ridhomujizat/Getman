@@ -1,20 +1,12 @@
 import { useState } from 'react';
-import { JsonView, collapseAllNested } from 'react-json-view-lite';
-import 'react-json-view-lite/dist/index.css';
 import { ClockAlert, Copy, RotateCw, SendHorizontal } from 'lucide-react';
+import { CodeEditor } from '../CodeEditor';
 import { useRequestStore } from '../../store/requestStore';
 import { StatusBadge } from './StatusBadge';
 import { HeadersTable } from './HeadersTable';
 import { formatBytes } from '../../lib/http';
 
 type Tab = 'body' | 'headers';
-
-const jsonStyles = {
-  container: 'json-tree', basicChildStyle: 'json-child', childFieldsContainer: 'json-children',
-  label: 'json-key', clickableLabel: 'json-key', nullValue: 'json-literal', undefinedValue: 'json-literal',
-  stringValue: 'json-string', booleanValue: 'json-literal', numberValue: 'json-number', otherValue: 'json-string',
-  punctuation: 'json-punctuation', collapseIcon: 'json-collapse', expandIcon: 'json-expand', collapsedContent: 'json-collapsed',
-};
 
 export function ResponseViewer({ onRetry }: { onRetry: () => void }) {
   const { response, error, loading } = useRequestStore();
@@ -86,7 +78,7 @@ export function ResponseViewer({ onRetry }: { onRetry: () => void }) {
         <div className="tabs borderless">
           <button className={`tab${tab === 'body' ? ' active' : ''}`} onClick={() => setTab('body')}>Body</button>
           <button className={`tab${tab === 'headers' ? ' active' : ''}`} onClick={() => setTab('headers')}>
-            Headers<span className="count"> · {Object.keys(response.headers).length}</span>
+            Headers<span className="count">{Object.keys(response.headers).length}</span>
           </button>
         </div>
         <div className="resp-actions">
@@ -103,11 +95,23 @@ export function ResponseViewer({ onRetry }: { onRetry: () => void }) {
         {tab === 'headers' ? (
           <HeadersTable headers={response.headers} />
         ) : parsed != null && !raw ? (
-          <div className="json-wrap">
-            <JsonView data={parsed as object} style={jsonStyles} shouldExpandNode={collapseAllNested} />
-          </div>
+          <CodeEditor
+            key={`pretty-${response.body}`}
+            value={JSON.stringify(parsed, null, 2)}
+            language="json"
+            readOnly
+            ariaLabel="Formatted response body"
+            className="response-code"
+          />
         ) : (
-          <pre className="raw-body">{response.body || '(empty body)'}</pre>
+          <CodeEditor
+            key={`raw-${response.body}`}
+            value={response.body || '(empty body)'}
+            language={parsed != null ? 'json' : 'text'}
+            readOnly
+            ariaLabel="Raw response body"
+            className="response-code"
+          />
         )}
       </div>
     </div>

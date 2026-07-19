@@ -1,5 +1,7 @@
-import { WandSparkles } from 'lucide-react';
+import { Paperclip, WandSparkles } from 'lucide-react';
 import type { Body, BodyType } from '../../types';
+import { CodeEditor } from '../CodeEditor';
+import { FormDataEditor } from './FormDataEditor';
 import { KeyValueEditor } from './KeyValueEditor';
 
 const TYPES: { value: BodyType; label: string }[] = [
@@ -25,7 +27,8 @@ export function BodyEditor({ body, onChange }: Props) {
   };
 
   const isRaw = body.type === 'json' || body.type === 'text';
-  const isForm = body.type === 'form-data' || body.type === 'x-www-form-urlencoded';
+  const isFormData = body.type === 'form-data';
+  const isUrlEncoded = body.type === 'x-www-form-urlencoded';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -46,6 +49,9 @@ export function BodyEditor({ body, onChange }: Props) {
             <WandSparkles size={13} /> Beautify
           </button>
         )}
+        {body.type === 'form-data' && (
+          <span className="multipart-mode"><Paperclip size={13} /> multipart/form-data</span>
+        )}
       </div>
 
       {body.type === 'none' && (
@@ -53,15 +59,25 @@ export function BodyEditor({ body, onChange }: Props) {
       )}
 
       {isRaw && (
-        <textarea
-          className="raw-editor mono"
-          placeholder={body.type === 'json' ? '{\n  "key": "value"\n}' : 'Raw text body'}
+        <CodeEditor
+          key={body.type}
           value={body.raw ?? ''}
-          onChange={(e) => onChange({ ...body, raw: e.target.value })}
+          language={body.type === 'json' ? 'json' : 'text'}
+          placeholderText={body.type === 'json' ? '' : ''}
+          ariaLabel="Request body"
+          className="request-code"
+          onChange={(raw) => onChange({ ...body, raw })}
         />
       )}
 
-      {isForm && (
+      {isFormData && (
+        <FormDataEditor
+          rows={body.formData ?? []}
+          onChange={(formData) => onChange({ ...body, formData })}
+        />
+      )}
+
+      {isUrlEncoded && (
         <KeyValueEditor
           rows={body.formData ?? []}
           onChange={(formData) => onChange({ ...body, formData })}

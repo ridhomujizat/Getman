@@ -8,6 +8,20 @@ pub struct KeyValue {
     pub value: String,
     #[serde(default = "default_true")]
     pub enabled: bool,
+    #[serde(default, rename = "valueType")]
+    pub value_type: Option<String>,
+    #[serde(default)]
+    pub files: Option<Vec<UploadFile>>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UploadFile {
+    pub name: String,
+    #[serde(default)]
+    pub mime_type: String,
+    #[serde(default)]
+    pub data: Vec<u8>,
 }
 
 fn default_true() -> bool {
@@ -170,7 +184,20 @@ pub async fn send_request(req: GetmanRequest) -> Result<GetmanResponse, HttpErro
             let mut form = reqwest::multipart::Form::new();
             if let Some(d) = &req.body.form_data {
                 for p in d.iter().filter(|p| p.enabled) {
-                    form = form.text(p.key.clone(), p.value.clone());
+                    if p.value_type.as_deref() == Some("file") {
+                        for file in p.files.as_ref().into_iter().flatten() {
+                            let mut part = reqwest::multipart::Part::bytes(file.data.clone())
+                                .file_name(file.name.clone());
+                            if !file.mime_type.is_empty() {
+                                part = part
+                                    .mime_str(&file.mime_type)
+                                    .map_err(|e| HttpError::Unknown(format!("Invalid file type: {e}")))?;
+                            }
+                            form = form.part(p.key.clone(), part);
+                        }
+                    } else {
+                        form = form.text(p.key.clone(), p.value.clone());
+                    }
                 }
             }
             builder.multipart(form)
@@ -199,4 +226,40 @@ pub async fn send_request(req: GetmanRequest) -> Result<GetmanResponse, HttpErro
         time_ms,
         size_bytes,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::GetmanRequest;
+
+    #[test]
+    fn deserializes_multipart_file() {
+        let req: GetmanRequest = serde_json::from_value(serde_json::json!({
+            "method": "POST",
+            "url": "https://example.com/upload",
+            "params": [],
+            "headers": [],
+            "body": {
+                "type": "form-data",
+                "formData": [{
+                    "key": "attachment",
+                    "value": "",
+                    "enabled": true,
+                    "valueType": "file",
+                    "files": [{
+                        "name": "receipt.pdf",
+                        "mimeType": "application/pdf",
+                        "sizeBytes": 3,
+                        "data": [1, 2, 3]
+                    }]
+                }]
+            },
+            "auth": { "type": "none" }
+        })).unwrap();
+
+        let form_data = req.body.form_data.unwrap();
+        let file = &form_data[0].files.as_ref().unwrap()[0];
+        assert_eq!(file.name, "receipt.pdf");
+        assert_eq!(file.data, [1, 2, 3]);
+    }
 }

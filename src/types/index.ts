@@ -4,6 +4,15 @@ export interface KeyValue {
   value: string;
   enabled: boolean;
   description?: string;
+  valueType?: 'text' | 'file';
+  files?: UploadFile[];
+}
+
+export interface UploadFile {
+  name: string;
+  mimeType: string;
+  sizeBytes: number;
+  data: number[];
 }
 
 export type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';

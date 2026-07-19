@@ -46,7 +46,12 @@ export const useRequestStore = create<State>((set) => ({
     set((s) => ({ request: { ...s.request, params: rows, url: buildUrl(s.request.url, rows) } }));
   },
   setHeaders: (headers) => set((s) => ({ request: { ...s.request, headers: withTrailingBlank(headers) } })),
-  setBody: (body) => set((s) => ({ request: { ...s.request, body } })),
+  setBody: (body) => set((s) => ({
+    request: {
+      ...s.request,
+      body: body.type === 'form-data' ? { ...body, formData: withTrailingBlank(body.formData ?? []) } : body,
+    },
+  })),
   setAuth: (auth) => set((s) => ({ request: { ...s.request, auth } })),
   setResponse: (response) => set({ response }),
   setError: (error) => set({ error }),

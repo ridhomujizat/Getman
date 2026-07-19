@@ -29,6 +29,13 @@ assert.equal(rows[2].key, '');
 const blanked = withTrailingBlank([{ id: '1', key: 'a', value: '1', enabled: true }, emptyRow()]);
 assert.equal(blanked.length, 2);
 
+// File-only rows are not blank even though their string value is empty.
+const withFile = withTrailingBlank([{
+  id: 'file', key: '', value: '', enabled: true, valueType: 'file' as const,
+  files: [{ name: 'receipt.pdf', mimeType: 'application/pdf', sizeBytes: 3, data: [1, 2, 3] }],
+}]);
+assert.equal(withFile.length, 2);
+
 function emptyRow() {
   return { id: 'x', key: '', value: '', enabled: true };
 }
