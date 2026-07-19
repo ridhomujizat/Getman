@@ -1,4 +1,4 @@
-import type { GetmanRequest, KeyValue } from '../types';
+import type { TesApiRequest, KeyValue } from '../types';
 
 export function substitute(value: string, variables: Record<string, string>, unresolved: Set<string>): string {
   return value.replace(/\{\{\s*([^{}]+?)\s*\}\}/g, (match, key: string) => {
@@ -20,10 +20,10 @@ function rows(items: KeyValue[] | undefined, variables: Record<string, string>, 
   }));
 }
 
-export function resolveRequest(request: GetmanRequest, environment: KeyValue[]): { request: GetmanRequest; unresolved: string[] } {
+export function resolveRequest(request: TesApiRequest, environment: KeyValue[]): { request: TesApiRequest; unresolved: string[] } {
   const variables = Object.fromEntries(environment.filter((item) => item.enabled && item.key).map((item) => [item.key, item.value]));
   const unresolved = new Set<string>();
-  const resolved: GetmanRequest = {
+  const resolved: TesApiRequest = {
       ...request,
       url: substitute(request.url, variables, unresolved),
       params: rows(request.params, variables, unresolved) ?? [],

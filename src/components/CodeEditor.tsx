@@ -27,7 +27,7 @@ interface Props {
   className?: string;
 }
 
-const getmanHighlight = HighlightStyle.define([
+const tesapiHighlight = HighlightStyle.define([
   { tag: tags.propertyName, color: '#8AB4F8' },
   { tag: tags.string, color: '#7EC699' },
   { tag: tags.number, color: '#F0A030' },
@@ -36,7 +36,7 @@ const getmanHighlight = HighlightStyle.define([
   { tag: tags.comment, color: '#5E6167' },
 ]);
 
-const getmanTheme = EditorView.theme({
+const tesapiTheme = EditorView.theme({
   '&': { height: '100%', backgroundColor: 'transparent', color: '#9A9CA3' },
   '.cm-scroller': { overflow: 'auto', fontFamily: "'JetBrains Mono', monospace", fontSize: '12.5px', lineHeight: '1.45' },
   '.cm-content': { minHeight: '100%', padding: '12px 0', caretColor: '#6E9BFF' },
@@ -79,8 +79,8 @@ export function CodeEditor({
         bracketMatching(),
         highlightActiveLine(),
         highlightActiveLineGutter(),
-        getmanTheme,
-        syntaxHighlighting(getmanHighlight),
+        tesapiTheme,
+        syntaxHighlighting(tesapiHighlight),
         ...(language === 'json' ? [json()] : []),
         ...(placeholderText ? [placeholder(placeholderText)] : []),
         EditorState.readOnly.of(readOnly),

@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Check, Folder, FolderPlus, Plus, X } from 'lucide-react';
-import type { GetmanRequest, RequestOrigin } from '../types';
+import type { TesApiRequest, RequestOrigin } from '../types';
 import { requestName, type FlatNode } from '../lib/collections';
 import { useCollectionStore } from '../store/collectionStore';
 import { methodColor } from '../lib/methods';
 
 interface Props {
-  request: GetmanRequest;
+  request: TesApiRequest;
   open: boolean;
   onCancel: () => void;
   onSaved: (origin: RequestOrigin, name: string) => void;

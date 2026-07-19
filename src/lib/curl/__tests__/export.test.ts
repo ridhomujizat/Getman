@@ -1,12 +1,12 @@
 // Run: node src/lib/curl/__tests__/export.test.ts (Node >=22)
 import assert from 'node:assert';
-import type { GetmanRequest, KeyValue } from '../../../types/index.ts';
+import type { TesApiRequest, KeyValue } from '../../../types/index.ts';
 import { parseCurl, toCurl } from '../index.ts';
 
 const row = (key: string, value: string, extra: Partial<KeyValue> = {}): KeyValue => ({ id: key || 'blank', key, value, enabled: !!key, ...extra });
 const blank = row('', '');
 
-function request(patch: Partial<GetmanRequest>): GetmanRequest {
+function request(patch: Partial<TesApiRequest>): TesApiRequest {
   return {
     id: 'request',
     method: 'GET',
@@ -19,7 +19,7 @@ function request(patch: Partial<GetmanRequest>): GetmanRequest {
   };
 }
 
-function canonical(value: GetmanRequest) {
+function canonical(value: TesApiRequest) {
   const rows = (items: KeyValue[] | undefined) => items?.filter((item) => item.key).map((item) => ({
     key: item.key,
     value: item.value,
@@ -37,7 +37,7 @@ function canonical(value: GetmanRequest) {
   };
 }
 
-function roundTrip(value: GetmanRequest) {
+function roundTrip(value: TesApiRequest) {
   const result = parseCurl(toCurl(value));
   assert.equal(result.ok, true, result.ok ? '' : result.error);
   if (result.ok) assert.deepEqual(canonical(result.request), canonical(value));

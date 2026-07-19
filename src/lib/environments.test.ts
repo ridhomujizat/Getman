@@ -1,9 +1,9 @@
 // Run: node src/lib/environments.test.ts (Node >=22)
 import assert from 'node:assert';
 import { resolveRequest } from './environments.ts';
-import type { GetmanRequest } from '../types/index.ts';
+import type { TesApiRequest } from '../types/index.ts';
 
-const request: GetmanRequest = {
+const request: TesApiRequest = {
   id: 'r', method: 'POST', url: '{{base_url}}/items',
   params: [{ id: 'p', key: 'tenant', value: '{{tenant}}', enabled: true }],
   headers: [{ id: 'h', key: 'Authorization', value: 'Bearer {{token}}', enabled: true }],

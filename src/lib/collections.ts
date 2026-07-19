@@ -1,8 +1,8 @@
-import type { Collection, GetmanRequest, KeyValue, TreeNode } from '../types';
+import type { Collection, TesApiRequest, KeyValue, TreeNode } from '../types';
 
 export type FlatNode =
   | { id: string; collectionId: string; parentId: string | null; type: 'folder'; name: string }
-  | { id: string; collectionId: string; parentId: string | null; type: 'request'; name: string; request: GetmanRequest };
+  | { id: string; collectionId: string; parentId: string | null; type: 'request'; name: string; request: TesApiRequest };
 
 export interface NormalizedCollection {
   collectionId: string;
@@ -75,7 +75,7 @@ function stripRows(rows: KeyValue[] | undefined): unknown[] {
   return active.map((row) => stripIds(row));
 }
 
-export function normalizeForCompare(request: GetmanRequest): string {
+export function normalizeForCompare(request: TesApiRequest): string {
   const normalized = {
     name: request.name ?? '',
     method: request.method,
@@ -92,7 +92,7 @@ export function normalizeForCompare(request: GetmanRequest): string {
   return JSON.stringify(normalized);
 }
 
-export function isTabDirty(tab: { draft: GetmanRequest; origin: unknown; savedSnapshot: string | null }): boolean {
+export function isTabDirty(tab: { draft: TesApiRequest; origin: unknown; savedSnapshot: string | null }): boolean {
   return tab.origin === null || normalizeForCompare(tab.draft) !== tab.savedSnapshot;
 }
 
@@ -105,7 +105,7 @@ export function isDescendant(nodesById: Record<string, FlatNode>, sourceId: stri
   return false;
 }
 
-export function requestName(request: GetmanRequest): string {
+export function requestName(request: TesApiRequest): string {
   if (request.name?.trim()) return request.name.trim();
   try {
     return new URL(request.url).pathname.split('/').filter(Boolean).pop() || `${request.method} request`;

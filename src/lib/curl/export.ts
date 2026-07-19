@@ -1,4 +1,4 @@
-import type { GetmanRequest, KeyValue } from '../../types/index.ts';
+import type { TesApiRequest, KeyValue } from '../../types/index.ts';
 import { buildUrl } from '../params.ts';
 
 export interface CurlExportOptions {
@@ -13,7 +13,7 @@ function enabled(rows: KeyValue[] | undefined): KeyValue[] {
   return rows?.filter((row) => row.enabled && row.key) ?? [];
 }
 
-function requestUrl(request: GetmanRequest): string {
+function requestUrl(request: TesApiRequest): string {
   if (request.auth.type !== 'api-key' || request.auth.addTo !== 'query' || !request.auth.key) {
     return buildUrl(request.url, request.params);
   }
@@ -22,7 +22,7 @@ function requestUrl(request: GetmanRequest): string {
   return buildUrl(request.url, params);
 }
 
-export function toCurl(request: GetmanRequest, _options: CurlExportOptions = {}): string {
+export function toCurl(request: TesApiRequest, _options: CurlExportOptions = {}): string {
   const parts: string[] = [];
   if (request.method !== 'GET') parts.push('-X', request.method);
   parts.push(quote(requestUrl(request)));

@@ -95,7 +95,7 @@ export default function App() {
 
   const appendHistory = useCallback((entry: HistoryEntry) => {
     void storageProvider.appendHistory(entry)
-      .then(() => window.dispatchEvent(new Event('getman-history-updated')))
+      .then(() => window.dispatchEvent(new Event('tesapi-history-updated')))
       .catch((error) => showToast({ title: 'Could not save history', detail: String(error), tone: 'error' }));
   }, [showToast]);
 

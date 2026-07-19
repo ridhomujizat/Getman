@@ -1,9 +1,9 @@
-import type { Auth, BodyType, GetmanRequest, KeyValue, Method } from '../../types/index.ts';
+import type { Auth, BodyType, TesApiRequest, KeyValue, Method } from '../../types/index.ts';
 import { uid } from '../id.ts';
 import { emptyRow, withTrailingBlank } from '../params.ts';
 
 export type CurlParseResult =
-  | { ok: true; request: GetmanRequest; warnings: string[] }
+  | { ok: true; request: TesApiRequest; warnings: string[] }
   | { ok: false; error: string };
 
 interface MapState {

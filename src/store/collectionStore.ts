@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Collection, CollectionSummary, GetmanRequest } from '../types';
+import type { Collection, CollectionSummary, TesApiRequest } from '../types';
 import { denormalizeCollection, isDescendant, normalizeCollection, ROOT, type FlatNode } from '../lib/collections';
 import { uid } from '../lib/id';
 import { storageProvider } from '../lib/storage/localJson';
@@ -17,7 +17,7 @@ interface State {
   renameCollection: (id: string, name: string) => Promise<void>;
   deleteCollection: (id: string) => Promise<void>;
   createFolder: (collectionId: string, parentId: string | null, name: string) => Promise<string>;
-  saveRequest: (collectionId: string, parentId: string | null, name: string, request: GetmanRequest, nodeId?: string) => Promise<string>;
+  saveRequest: (collectionId: string, parentId: string | null, name: string, request: TesApiRequest, nodeId?: string) => Promise<string>;
   renameNode: (collectionId: string, nodeId: string, name: string) => Promise<void>;
   deleteNode: (collectionId: string, nodeId: string) => Promise<string[]>;
   duplicateNode: (collectionId: string, nodeId: string) => Promise<string>;

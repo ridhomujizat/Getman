@@ -1,12 +1,12 @@
 ## Imported Claude Cowork project instructions
 
-I want create app with AI, GetMan app clone postman for my personal use. create plan several phases.
+I want create app with AI, TesAPI app clone postman for my personal use. create plan several phases.
 phase
 for design, crul copy paste( in input url and can covert to that format) crul, history, mock server, mcp ai
 
 ## Phase 3 implementation notes
 
-- Local persistence lives under the Tauri app-data `getman/` directory and is accessed through `StorageProvider` / `LocalJsonProvider` only.
+- Local persistence lives under the Tauri app-data `tesapi/` directory and is accessed through `StorageProvider` / `LocalJsonProvider` only.
 - Collections are nested-tree JSON files, history is capped NDJSON, and session/environment state are separate files.
 - Collection writes use the Rust atomic-write command and retain a `.bak`; corrupt files are quarantined and recovered when possible.
 - New tabs are drafts until explicit Save; sending only appends history. Environment placeholders resolve at send/cURL-export time.
@@ -31,7 +31,7 @@ Basic error handling (timeouts, DNS failures, invalid URLs)
 Phase 2 — cURL Import/Export (Week 2)
 Goal: Paste a cURL command → it fills the request form; and export any request as cURL.
 
-Import: parse curl strings (handle Bash, Windows cmd.exe, PowerShell, -X, -H, -d/--data, --data-raw, -u, -F, quotes and line continuations). GetMan uses the pure TypeScript handler in `src/lib/curl/`; do not add an external cURL parser dependency.
+Import: parse curl strings (handle Bash, Windows cmd.exe, PowerShell, -X, -H, -d/--data, --data-raw, -u, -F, quotes and line continuations). TesAPI uses the pure TypeScript handler in `src/lib/curl/`; do not add an external cURL parser dependency.
 Export: serialize the current Request object back into a copyable cURL command.
 Bonus: detect when the user pastes a cURL string directly into the URL bar and auto-convert it — this is the "paste in input URL" behavior you described.
 
@@ -53,8 +53,8 @@ Nice-to-have: auto-generate a mock from a real response in your history ("mock t
 Route matching with path params (/users/:id) and a request log so you can see what hit the mock
 
 Phase 5 — AI + MCP Integration (Week 5+)
-Goal: Make GetMan AI-assisted.
+Goal: Make TesAPI AI-assisted.
 
 AI features via the Anthropic API: generate a request from a natural-language description ("call the GitHub API to list my repos"), explain an error response, generate mock response bodies from a description or a JSON schema, summarize/diff two responses.
-MCP server mode: expose GetMan itself as an MCP server so Claude (Desktop/Code) can use your saved collections as tools — e.g. tools like send_request, list_collections, get_history. This turns your saved APIs into things an AI agent can call.
-MCP client mode (optional, more advanced): let GetMan connect to other MCP servers and test them, like an MCP inspector.
+MCP server mode: expose TesAPI itself as an MCP server so Claude (Desktop/Code) can use your saved collections as tools — e.g. tools like send_request, list_collections, get_history. This turns your saved APIs into things an AI agent can call.
+MCP client mode (optional, more advanced): let TesAPI connect to other MCP servers and test them, like an MCP inspector.

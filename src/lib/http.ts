@@ -1,9 +1,9 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { GetmanRequest, GetmanResponse, HttpError } from '../types';
+import type { TesApiRequest, TesApiResponse, HttpError } from '../types';
 
-export async function sendRequest(req: GetmanRequest): Promise<GetmanResponse> {
+export async function sendRequest(req: TesApiRequest): Promise<TesApiResponse> {
   // Rust returns HttpError as the rejected value; rethrow shaped.
-  return invoke<GetmanResponse>('send_request', { req });
+  return invoke<TesApiResponse>('send_request', { req });
 }
 
 export function isHttpError(e: unknown): e is HttpError {

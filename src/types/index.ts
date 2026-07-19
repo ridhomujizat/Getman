@@ -35,7 +35,7 @@ export interface Auth {
   addTo?: 'header' | 'query';
 }
 
-export interface GetmanRequest {
+export interface TesApiRequest {
   id: string;
   name?: string;
   method: Method;
@@ -79,7 +79,7 @@ export interface CollectionSummary {
 
 export type TreeNode =
   | { id: string; type: 'folder'; name: string; children: TreeNode[] }
-  | { id: string; type: 'request'; name: string; request: GetmanRequest };
+  | { id: string; type: 'request'; name: string; request: TesApiRequest };
 
 export interface Collection {
   id: string;
@@ -96,7 +96,7 @@ export interface HistoryEntry {
   status: number;
   durationMs: number;
   sizeBytes: number;
-  request: GetmanRequest;
+  request: TesApiRequest;
 }
 
 export interface HistoryQuery {
@@ -113,7 +113,7 @@ export interface RequestOrigin {
 
 export interface RequestTab {
   id: string;
-  draft: GetmanRequest;
+  draft: TesApiRequest;
   origin: RequestOrigin | null;
   savedSnapshot: string | null;
 }
@@ -137,7 +137,7 @@ export interface EnvironmentsFile {
   environments: EnvironmentSet[];
 }
 
-export interface GetmanResponse {
+export interface TesApiResponse {
   status: number;
   statusText: string;
   headers: Record<string, string>;

@@ -1,6 +1,6 @@
-# Tauri + React + Typescript
+# TesAPI
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+A personal desktop API client built with Tauri, React, and TypeScript.
 
 ## cURL import/export
 
@@ -23,10 +23,10 @@ node src/lib/curl/__tests__/export.test.ts
 
 ## Phase 3 local storage
 
-GetMan stores one local workspace under the Tauri app-data directory:
+TesAPI stores one local workspace under the Tauri app-data directory:
 
 ```text
-getman/
+tesapi/
 ├── workspaces.json
 └── workspaces/<workspace-id>/
     ├── workspace.json

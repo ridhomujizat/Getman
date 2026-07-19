@@ -60,7 +60,7 @@ pub struct Auth {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct GetmanRequest {
+pub struct TesApiRequest {
     pub method: String,
     pub url: String,
     #[serde(default)]
@@ -73,7 +73,7 @@ pub struct GetmanRequest {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct GetmanResponse {
+pub struct TesApiResponse {
     pub status: u16,
     pub status_text: String,
     pub headers: std::collections::HashMap<String, String>,
@@ -113,7 +113,7 @@ fn classify(err: &reqwest::Error) -> HttpError {
 }
 
 #[tauri::command]
-pub async fn send_request(req: GetmanRequest) -> Result<GetmanResponse, HttpError> {
+pub async fn send_request(req: TesApiRequest) -> Result<TesApiResponse, HttpError> {
     let method = reqwest::Method::from_bytes(req.method.as_bytes())
         .map_err(|_| HttpError::InvalidUrl(format!("Bad method: {}", req.method)))?;
 
@@ -222,7 +222,7 @@ pub async fn send_request(req: GetmanRequest) -> Result<GetmanResponse, HttpErro
     let time_ms = start.elapsed().as_millis();
     let size_bytes = body.len();
 
-    Ok(GetmanResponse {
+    Ok(TesApiResponse {
         status: status.as_u16(),
         status_text: status.canonical_reason().unwrap_or("").to_string(),
         headers,
@@ -234,11 +234,11 @@ pub async fn send_request(req: GetmanRequest) -> Result<GetmanResponse, HttpErro
 
 #[cfg(test)]
 mod tests {
-    use super::GetmanRequest;
+    use super::TesApiRequest;
 
     #[test]
     fn deserializes_multipart_file() {
-        let req: GetmanRequest = serde_json::from_value(serde_json::json!({
+        let req: TesApiRequest = serde_json::from_value(serde_json::json!({
             "method": "POST",
             "url": "https://example.com/upload",
             "params": [],

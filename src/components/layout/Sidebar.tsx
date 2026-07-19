@@ -107,8 +107,8 @@ export function Sidebar({ onToast }: { onToast: (message: ToastMessage) => void 
   useEffect(() => {
     if (view !== 'history') return;
     const refresh = () => void refreshHistory();
-    window.addEventListener('getman-history-updated', refresh);
-    return () => window.removeEventListener('getman-history-updated', refresh);
+    window.addEventListener('tesapi-history-updated', refresh);
+    return () => window.removeEventListener('tesapi-history-updated', refresh);
   }, [refreshHistory, view]);
 
   useEffect(() => {

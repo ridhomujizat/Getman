@@ -1,9 +1,9 @@
 // Run: node src/lib/collections.test.ts (Node >=22)
 import assert from 'node:assert';
 import { denormalizeCollection, isDescendant, normalizeCollection, normalizeForCompare } from './collections.ts';
-import type { Collection, GetmanRequest } from '../types/index.ts';
+import type { Collection, TesApiRequest } from '../types/index.ts';
 
-const request = (id: string): GetmanRequest => ({
+const request = (id: string): TesApiRequest => ({
   id, method: 'GET', url: 'https://example.com/items', params: [], headers: [], body: { type: 'none' }, auth: { type: 'none' },
 });
 const collection: Collection = {

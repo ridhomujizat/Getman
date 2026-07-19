@@ -12,7 +12,7 @@ use tauri::{AppHandle, Manager};
 fn storage_root(app: &AppHandle) -> Result<PathBuf, String> {
     app.path()
         .app_data_dir()
-        .map(|path| path.join("getman"))
+        .map(|path| path.join("tesapi"))
         .map_err(|error| error.to_string())
 }
 
@@ -23,7 +23,7 @@ fn resolve(app: &AppHandle, relative: &str) -> Result<PathBuf, String> {
             .components()
             .any(|part| matches!(part, Component::ParentDir))
     {
-        return Err("Storage path must stay inside GetMan app data".into());
+        return Err("Storage path must stay inside TesAPI app data".into());
     }
     Ok(storage_root(app)?.join(path))
 }
@@ -270,7 +270,7 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_nanos();
-        std::env::temp_dir().join(format!("getman-{name}-{stamp}"))
+        std::env::temp_dir().join(format!("tesapi-{name}-{stamp}"))
     }
 
     #[test]

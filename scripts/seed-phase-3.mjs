@@ -2,7 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 const root = process.argv[2];
-if (!root) throw new Error('Usage: node scripts/seed-phase-3.mjs <getman-app-data-root>');
+if (!root) throw new Error('Usage: node scripts/seed-phase-3.mjs <tesapi-app-data-root>');
 
 const workspaceId = 'performance-workspace';
 const workspaceRoot = join(root, 'workspaces', workspaceId);

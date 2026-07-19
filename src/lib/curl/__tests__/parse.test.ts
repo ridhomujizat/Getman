@@ -43,7 +43,7 @@ assert.equal(cmd.headers.find((header) => header.key === 'Cookie')?.value, 'Path
 assert.deepEqual(shape(chromeBash), cmd);
 assert.deepEqual(shape(chromePowerShell), cmd);
 
-const json = parsed(`curl --json '{"name":"GetMan"}' https://example.com/items`);
+const json = parsed(`curl --json '{"name":"TesAPI"}' https://example.com/items`);
 assert.equal(json.method, 'POST');
 assert.equal(json.body.type, 'json');
 assert.equal(json.headers.filter((header) => header.key).length, 2);

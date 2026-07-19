@@ -1,10 +1,10 @@
 import { create } from 'zustand';
-import type { GetmanRequest, GetmanResponse, KeyValue, Method, RequestOrigin, RequestTab, SessionState } from '../types/index.ts';
+import type { TesApiRequest, TesApiResponse, KeyValue, Method, RequestOrigin, RequestTab, SessionState } from '../types/index.ts';
 import { normalizeForCompare } from '../lib/collections.ts';
 import { buildUrl, emptyRow, parseParams, withTrailingBlank } from '../lib/params.ts';
 import { uid } from '../lib/id.ts';
 
-export function newRequest(): GetmanRequest {
+export function newRequest(): TesApiRequest {
   return {
     id: uid(),
     method: 'GET',
@@ -28,23 +28,23 @@ function newTab(request = newRequest(), origin: RequestOrigin | null = null): Re
 interface State {
   tabs: RequestTab[];
   activeTabId: string;
-  request: GetmanRequest;
-  response: GetmanResponse | null;
+  request: TesApiRequest;
+  response: TesApiResponse | null;
   error: string | null;
   loading: boolean;
   setMethod: (method: Method) => void;
   setUrl: (url: string) => void;
   setParams: (params: KeyValue[]) => void;
   setHeaders: (headers: KeyValue[]) => void;
-  setBody: (body: GetmanRequest['body']) => void;
-  setAuth: (auth: GetmanRequest['auth']) => void;
-  setResponse: (response: GetmanResponse | null) => void;
+  setBody: (body: TesApiRequest['body']) => void;
+  setAuth: (auth: TesApiRequest['auth']) => void;
+  setResponse: (response: TesApiResponse | null) => void;
   setError: (error: string | null) => void;
   setLoading: (loading: boolean) => void;
-  replaceRequest: (request: GetmanRequest) => void;
+  replaceRequest: (request: TesApiRequest) => void;
   createRequest: () => void;
-  openRequest: (request: GetmanRequest, origin: RequestOrigin) => void;
-  openUnsaved: (request: GetmanRequest) => void;
+  openRequest: (request: TesApiRequest, origin: RequestOrigin) => void;
+  openUnsaved: (request: TesApiRequest) => void;
   focusTab: (id: string) => void;
   closeTab: (id: string) => void;
   renameSavedTab: (origin: RequestOrigin, name: string) => void;
@@ -55,7 +55,7 @@ interface State {
 
 const idleRequest = newRequest();
 
-function updateActive(state: State, draft: GetmanRequest): Partial<State> {
+function updateActive(state: State, draft: TesApiRequest): Partial<State> {
   return {
     request: draft,
     tabs: state.tabs.map((tab) => tab.id === state.activeTabId ? { ...tab, draft } : tab),
