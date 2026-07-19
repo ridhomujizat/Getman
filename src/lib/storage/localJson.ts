@@ -143,7 +143,11 @@ export class LocalJsonProvider implements StorageProvider {
   }
 
   async clearHistory(): Promise<void> {
-    await invoke('delete_file', { path: historyPath(await this.activeWorkspaceId()) });
+    const path = historyPath(await this.activeWorkspaceId());
+    await Promise.all([
+      invoke('delete_file', { path }),
+      invoke('delete_file', { path: `${path}.bak` }),
+    ]);
   }
 
   async loadSession(): Promise<SessionState | null> {

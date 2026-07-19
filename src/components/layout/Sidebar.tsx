@@ -72,6 +72,8 @@ export function Sidebar({ onToast }: { onToast: (message: ToastMessage) => void 
   const [editing, setEditing] = useState<EditingState | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DeleteState | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [clearHistoryOpen, setClearHistoryOpen] = useState(false);
+  const [clearingHistory, setClearingHistory] = useState(false);
   const [dragging, setDragging] = useState<{ collectionId: string; nodeId: string } | null>(null);
   const [drop, setDrop] = useState<{ key: string; mode: DropMode } | null>(null);
   const [scrollTop, setScrollTop] = useState(0);
@@ -300,6 +302,20 @@ export function Sidebar({ onToast }: { onToast: (message: ToastMessage) => void 
     }
   };
 
+  const confirmClearHistory = async () => {
+    setClearingHistory(true);
+    try {
+      await storageProvider.clearHistory();
+      setHistory([]);
+      setClearHistoryOpen(false);
+      onToast({ title: 'History cleared' });
+    } catch (error) {
+      onToast({ title: 'Could not clear history', detail: String(error), tone: 'error' });
+    } finally {
+      setClearingHistory(false);
+    }
+  };
+
   const confirmMove = async () => {
     if (!move) return;
     const location = moveLocations.find((item) => item.value === move.location);
@@ -394,13 +410,15 @@ export function Sidebar({ onToast }: { onToast: (message: ToastMessage) => void 
         </div>
       )}
 
-      {view === 'history' && <div className="tree history-list"><div className="history-toolbar"><span className="label-caps">History</span><button onClick={() => { if (window.confirm('Clear all history?')) void storageProvider.clearHistory().then(refreshHistory); }}><Trash2 size={12} /> Clear</button></div>{history.map((entry, index) => { const label = dayLabel(entry.ts); const previous = index ? dayLabel(history[index - 1].ts) : ''; return <div key={entry.id}>{label !== previous && <div className="history-day label-caps">{label}</div>}<button className="history-entry" onClick={() => openUnsaved(entry.request)}><span className="tree-method" style={{ color: methodColor(entry.method) }}>{entry.method}</span><span className="history-url">{entry.url}</span><span className={`history-status status-${entry.status ? Math.floor(entry.status / 100) : 0}`}>{entry.status || 'ERR'}</span><time>{entry.durationMs} ms</time></button></div>; })}{!history.length && <div className="sidebar-empty"><History size={24} /><span>No history yet</span></div>}</div>}
+      {view === 'history' && <div className="tree history-list"><div className="history-toolbar"><span className="label-caps">History</span><button onClick={() => setClearHistoryOpen(true)}><Trash2 size={12} /> Clear</button></div>{history.map((entry, index) => { const label = dayLabel(entry.ts); const previous = index ? dayLabel(history[index - 1].ts) : ''; return <div key={entry.id}>{label !== previous && <div className="history-day label-caps">{label}</div>}<button className="history-entry" onClick={() => openUnsaved(entry.request)}><span className="tree-method" style={{ color: methodColor(entry.method) }}>{entry.method}</span><span className="history-url">{entry.url}</span><span className={`history-status status-${entry.status ? Math.floor(entry.status / 100) : 0}`}>{entry.status || 'ERR'}</span><time>{entry.durationMs} ms</time></button></div>; })}{!history.length && <div className="sidebar-empty"><History size={24} /><span>No history yet</span></div>}</div>}
 
       {view === 'environments' && <div className="tree environment-editor"><div className="environment-toolbar"><select value={environmentFile.activeEnvironmentId ?? ''} onChange={(event) => void setActiveEnvironment(event.target.value || null)}><option value="">No environment</option>{environmentFile.environments.map((environment) => <option key={environment.id} value={environment.id}>{environment.name}</option>)}</select><button title="New environment" onClick={() => { const name = window.prompt('Environment name'); if (name?.trim()) void createEnvironment(name); }}><Plus size={13} /></button></div>{activeEnvironment ? <div className="environment-rows">{activeEnvironment.variables.map((variable) => <div className={`environment-variable${variable.enabled ? '' : ' disabled'}`} key={variable.id}><input type="checkbox" checked={variable.enabled} onChange={(event) => void setEnvironmentVariables(activeEnvironment.id, activeEnvironment.variables.map((item) => item.id === variable.id ? { ...item, enabled: event.target.checked } : item))} /><input placeholder="Variable" value={variable.key} onChange={(event) => void setEnvironmentVariables(activeEnvironment.id, activeEnvironment.variables.map((item) => item.id === variable.id ? applyRowEdit(item, { key: event.target.value }) : item))} /><input placeholder="Value" value={variable.value} onChange={(event) => void setEnvironmentVariables(activeEnvironment.id, activeEnvironment.variables.map((item) => item.id === variable.id ? applyRowEdit(item, { value: event.target.value }) : item))} /></div>)}</div> : <div className="sidebar-empty"><Layers3 size={24} /><span>No environments yet</span><button onClick={() => { const name = window.prompt('Environment name'); if (name?.trim()) void createEnvironment(name); }}>New environment</button></div>}</div>}
 
       {context && <div className="context-menu" style={{ left: context.x, top: context.y }} onClick={(event) => event.stopPropagation()}>{context.type === 'empty' ? <><button onClick={() => runContextAction('new-collection')}>New collection</button><button disabled={!context.collectionId} onClick={() => runContextAction('new-folder')}>New folder</button><button disabled={!context.collectionId} onClick={() => runContextAction('new-request')}>New request</button></> : <>{context.type !== 'request' && <button onClick={() => runContextAction('new-folder')}>New folder</button>}<button onClick={() => runContextAction('new-request')}>New request</button><button onClick={() => runContextAction('rename')}>Rename</button>{context.type === 'request' && <button onClick={() => runContextAction('duplicate')}>Duplicate</button>}{context.type !== 'collection' && <button onClick={() => runContextAction('move')}>Move to…</button>}<button className="danger" onClick={() => runContextAction('delete')}>Delete</button></>}</div>}
 
       {deleteTarget && <div className="modal-backdrop"><section className="close-tab-modal delete-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="delete-item-title"><div className="save-modal-header"><div><h2 id="delete-item-title">Delete {deleteTarget.type}?</h2><p>“{deleteTarget.name}” will be permanently deleted{deleteTarget.type === 'folder' ? ', including everything inside it' : ''}.</p></div></div><div className="save-modal-actions"><button className="modal-cancel" disabled={deleting} onClick={() => setDeleteTarget(null)}>Cancel</button><button className="modal-delete" disabled={deleting} onClick={() => void confirmDelete()}>{deleting ? 'Deleting…' : 'Delete'}</button></div></section></div>}
+
+      {clearHistoryOpen && <div className="modal-backdrop"><section className="close-tab-modal delete-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="clear-history-title"><div className="save-modal-header"><div><h2 id="clear-history-title">Clear history?</h2><p>All request history will be permanently deleted.</p></div></div><div className="save-modal-actions"><button className="modal-cancel" disabled={clearingHistory} onClick={() => setClearHistoryOpen(false)}>Cancel</button><button className="modal-delete" disabled={clearingHistory} onClick={() => void confirmClearHistory()}>{clearingHistory ? 'Clearing…' : 'Clear history'}</button></div></section></div>}
 
       {move && <div className="modal-backdrop"><section className="save-location-modal move-location-modal" role="dialog" aria-modal="true" aria-labelledby="move-location-title"><div className="save-modal-header"><div><h2 id="move-location-title">Move item</h2><p>Choose a collection or nested folder.</p></div><button className="modal-close" aria-label="Close move dialog" onClick={() => setMove(null)}>×</button></div><label className="save-field"><span><b>Folder / location</b><small>Workspace folders</small></span><div className="save-select"><Folder size={14} /><select value={move.location} onChange={(event) => setMove({ ...move, location: event.target.value })}>{moveLocations.map((location) => <option key={location.value} value={location.value}>{location.label}</option>)}</select></div></label><div className="save-modal-actions"><button className="modal-cancel" onClick={() => setMove(null)}>Cancel</button><button className="modal-save" disabled={!moveLocations.length} onClick={() => void confirmMove()}>Move</button></div></section></div>}
     </aside>
