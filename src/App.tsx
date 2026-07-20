@@ -32,6 +32,7 @@ import type { HistoryEntry, SessionState, WorkspaceRecord } from './types';
 import { OPEN_VARIABLES_EVENT } from './components/VariablePopover';
 import { useGitStore } from './store/gitStore';
 import { setSetting } from './lib/registry';
+import { useResizableLayout } from './hooks/useResizableLayout';
 
 function validUrl(url: string): boolean {
   try {
@@ -60,6 +61,7 @@ export default function App() {
   const inflight = useRef<string | null>(null);
   const sessionTimer = useRef(0);
   const hasActiveTab = tabs.some((tab) => tab.id === activeTabId);
+  const layout = useResizableLayout();
 
   const showToast = useCallback((message: ToastMessage) => setToast(message), []);
   const workspace = useWorkspaceController(showToast);
@@ -267,7 +269,7 @@ export default function App() {
   }
 
   return (
-    <div className="shell">
+    <div className="shell" style={{ '--sidebar-width': `${layout.sidebarWidth}px` } as React.CSSProperties}>
       <Sidebar currentWorkspace={workspace.current} workspaces={workspace.workspaces} onToast={showToast} onWorkspaceChange={setWorkspaceView} onCreateWorkspace={() => setCreateWorkspaceOpen(true)} onManageWorkspaces={(target) => { setManageWorkspaceId(target?.id ?? workspace.current?.id); setManageWorkspacesOpen(true); }} onOpenWorkspace={requestWorkspaceSwitch} onOpenWorkspaceWindow={(target) => void workspace.openNewWindow(target).catch((error) => showToast({ title: 'Could not open workspace window', detail: String(error), tone: 'error' }))} onRenameWorkspace={(id, name) => {
         if (storageProvider.isReadOnly()) {
           showToast({ title: 'Workspace is read-only', detail: 'Upgrade TesAPI before renaming this workspace.', tone: 'error' });
@@ -275,13 +277,15 @@ export default function App() {
         }
         return workspace.rename(id, name).catch((error) => { showToast({ title: 'Could not rename workspace', detail: String(error), tone: 'error' }); });
       }} />
+      <div className="sidebar-resize-handle" role="separator" aria-orientation="vertical" aria-label="Resize sidebar" aria-valuemin={210} aria-valuemax={440} aria-valuenow={layout.sidebarWidth} tabIndex={0} onPointerDown={layout.startSidebarResize} onDoubleClick={layout.resetSidebar} onKeyDown={(event) => { if (event.key === 'ArrowLeft') layout.resizeSidebarBy(-16); if (event.key === 'ArrowRight') layout.resizeSidebarBy(16); }} />
       <WorkspaceConflictBanner conflict={collaboration.storageConflict} busy={collaboration.storageConflictBusy} onReload={() => void collaboration.resolveStorageConflict(false)} onKeepMine={() => void collaboration.resolveStorageConflict(true)} />
       <WorkspaceReadOnlyBanner reason={storageProvider.readOnlyReason()} />
       <WorkspaceSyncBanner paused={workspace.syncState === 'paused'} busy={collaboration.syncRetryBusy} onRetry={collaboration.retryPausedSync} />
       <GitConflictBanner workspaceRoot={workspace.current.rootPath} manifest={collaboration.gitManifest} busy={collaboration.gitConflictBusy} onResolve={(file, choice) => void collaboration.resolveGitConflict(file, choice)} />
-      <main className={workspaceView === 'environment' ? 'main environment-main' : `main${hasActiveTab ? '' : ' empty-request-main'}`}>
+      <main className={`${workspaceView === 'environment' ? 'main environment-main' : `main${hasActiveTab ? ' resizable-main' : ' empty-request-main'}`}`} style={hasActiveTab && workspaceView === 'api' ? { '--response-height': `${layout.responseHeight}px` } as React.CSSProperties : undefined}>
         {workspaceView === 'environment' ? <EnvironmentEditor onToast={showToast} /> : hasActiveTab ? <>
           <RequestBuilder onSend={onSend} onCancel={onCancel} onToast={showToast} onSave={onSave} onCloseTab={requestClose} />
+          <div className="pane-resize-handle" role="separator" aria-orientation="horizontal" aria-label="Resize request and response panes" aria-valuemin={150} aria-valuemax={Math.max(150, window.innerHeight - 266)} aria-valuenow={layout.responseHeight} tabIndex={0} onPointerDown={layout.startResponseResize} onDoubleClick={layout.resetResponse} onKeyDown={(event) => { if (event.key === 'ArrowUp') layout.resizeResponseBy(16); if (event.key === 'ArrowDown') layout.resizeResponseBy(-16); }} />
           <ResponseViewer onRetry={onSend} onSaveResponse={requestSaveResponse} />
         </> : <EmptyRequestState onNewRequest={openNewRequest} />}
       </main>
