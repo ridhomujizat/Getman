@@ -11,6 +11,7 @@ import { SidebarSearch } from './SidebarSearch';
 import type { SidebarView, WorkspaceView } from './types';
 import { buildMoveLocations, buildRows, type CollectionRow, type ContextState, type DeleteState, type DropMode, type DropState, type EditingState, type MoveState } from './collectionSidebarModel';
 import { parsePostmanCollection } from '../../../lib/import/postman';
+import { ImportCollectionModal, type ImportSource } from '../../collections/ImportCollectionModal';
 
 const ROW_HEIGHT = 32;
 
@@ -21,7 +22,7 @@ export function CollectionsSidebar({ onToast, onViewChange, onWorkspaceChange }:
   const { tabs, activeTabId, response: currentResponse, openRequest, renameSavedTab, closeSavedTabs } = useRequestStore();
   const [query, setQuery] = useState('');
   const [addMenuOpen, setAddMenuOpen] = useState(false);
-  const [importing, setImporting] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [context, setContext] = useState<ContextState | null>(null);
   const [move, setMove] = useState<MoveState | null>(null);
   const [editing, setEditing] = useState<EditingState | null>(null);
@@ -32,7 +33,6 @@ export function CollectionsSidebar({ onToast, onViewChange, onWorkspaceChange }:
   const [scrollTop, setScrollTop] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(500);
   const treeRef = useRef<HTMLDivElement>(null);
-  const importInputRef = useRef<HTMLInputElement>(null);
   const hoverTimer = useRef(0);
   const rows = useMemo(() => buildRows(collectionState, query), [collectionState.collectionsById, collectionState.expandedIds, collectionState.summaries, query]);
   const moveLocations = useMemo(() => move ? buildMoveLocations(collectionState, move, isDescendant) : [], [collectionState.collectionsById, collectionState.summaries, move]);
@@ -71,20 +71,13 @@ export function CollectionsSidebar({ onToast, onViewChange, onWorkspaceChange }:
     try { const id = await useCollectionStore.getState().createCollection('New collection'); startEditing(id, 'New collection'); }
     catch (error) { onToast({ title: 'Could not create collection', detail: String(error), tone: 'error' }); }
   };
-  const importCollection = async (file: File) => {
-    setImporting(true);
-    try {
-      const fallback = file.name.replace(/\.postman_collection\.json$|\.json$/i, '');
-      const imported = parsePostmanCollection(JSON.parse(await file.text()), fallback);
-      await useCollectionStore.getState().importCollection(imported.name, imported.root);
-      const detail = `${imported.requestCount} requests · ${imported.folderCount} folders · ${imported.responseCount} saved responses${imported.warnings[0] ? ` · ${imported.warnings[0]}` : ''}`;
-      onToast({ title: `Imported ${imported.name}`, detail });
-    } catch (error) {
-      onToast({ title: 'Could not import collection', detail: String(error).replace(/^Error:\s*/, ''), tone: 'error' });
-    } finally {
-      setImporting(false);
-      if (importInputRef.current) importInputRef.current.value = '';
-    }
+  const importCollection = async (file: File, source: ImportSource) => {
+    if (source !== 'postman') throw new Error('This import source is not available yet.');
+    const fallback = file.name.replace(/\.postman_collection\.json$|\.json$/i, '');
+    const imported = parsePostmanCollection(JSON.parse(await file.text()), fallback);
+    await useCollectionStore.getState().importCollection(imported.name, imported.root);
+    const detail = `${imported.requestCount} requests · ${imported.folderCount} folders · ${imported.responseCount} saved responses${imported.warnings[0] ? ` · ${imported.warnings[0]}` : ''}`;
+    onToast({ title: `Imported ${imported.name}`, detail });
   };
   const commitEditing = async () => {
     const target = editing;
@@ -195,8 +188,7 @@ export function CollectionsSidebar({ onToast, onViewChange, onWorkspaceChange }:
   return <>
     <SidebarNav active="collections" onChange={onViewChange} action={<div className="sidebar-add-wrap" onClick={(event) => event.stopPropagation()}>
       <button className={`icon-button sidebar-add${addMenuOpen ? ' active' : ''}`} title="Add collection" aria-expanded={addMenuOpen} onClick={() => setAddMenuOpen((open) => !open)}><Plus size={15} /></button>
-      {addMenuOpen && <div className="sidebar-add-menu" role="menu"><button onClick={() => { setAddMenuOpen(false); void createCollection(); }}><FolderPlus size={13} /><span><b>New collection</b><small>Create an empty collection</small></span></button><button disabled={importing} onClick={() => { setAddMenuOpen(false); importInputRef.current?.click(); }}>{importing ? <span className="spinner accent-spinner" /> : <FileUp size={13} />}<span><b>Import…</b><small>Postman collection JSON</small></span></button></div>}
-      <input ref={importInputRef} className="collection-import-input" type="file" accept=".json,application/json" onChange={(event) => { const file = event.target.files?.[0]; if (file) void importCollection(file); }} />
+      {addMenuOpen && <div className="sidebar-add-menu" role="menu"><button onClick={() => { setAddMenuOpen(false); void createCollection(); }}><FolderPlus size={13} /><span><b>New collection</b><small>Create an empty collection</small></span></button><button onClick={() => { setAddMenuOpen(false); setImportOpen(true); }}><FileUp size={13} /><span><b>Import…</b><small>From Postman and more</small></span></button></div>}
     </div>} />
     <SidebarSearch placeholder="Search requests" value={query} onChange={setQuery} />
     <div className="tree virtual-tree" ref={treeRef} onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)} onContextMenu={(event) => { event.preventDefault(); const fallback = collectionState.summaries.find((summary) => collectionState.expandedIds[summary.id])?.id ?? collectionState.summaries[0]?.id ?? ''; setContext({ x: event.clientX, y: event.clientY, collectionId: fallback, type: 'empty' }); }}>
@@ -229,5 +221,6 @@ export function CollectionsSidebar({ onToast, onViewChange, onWorkspaceChange }:
     {context && <div className="context-menu" style={{ left: context.x, top: context.y }} onClick={(event) => event.stopPropagation()}>{context.type === 'empty' ? <><button onClick={() => runContextAction('new-collection')}>New collection</button><button disabled={!context.collectionId} onClick={() => runContextAction('new-folder')}>New folder</button><button disabled={!context.collectionId} onClick={() => runContextAction('new-request')}>New request</button></> : context.type === 'response' ? <button className="danger" onClick={() => runContextAction('delete')}>Delete response</button> : <>{context.type !== 'request' && <button onClick={() => runContextAction('new-folder')}>New folder</button>}<button onClick={() => runContextAction('new-request')}>New request</button><button onClick={() => runContextAction('rename')}>Rename</button>{context.type === 'request' && <button onClick={() => runContextAction('duplicate')}>Duplicate</button>}{context.type !== 'collection' && <button onClick={() => runContextAction('move')}>Move to…</button>}<button className="danger" onClick={() => runContextAction('delete')}>Delete</button></>}</div>}
     {deleteTarget && <div className="modal-backdrop"><section className="close-tab-modal delete-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="delete-item-title"><div className="save-modal-header"><div><h2 id="delete-item-title">Delete {deleteTarget.type}?</h2><p>“{deleteTarget.name}” will be permanently deleted{deleteTarget.type === 'folder' ? ', including everything inside it' : ''}.</p></div></div><div className="save-modal-actions"><button className="modal-cancel" disabled={deleting} onClick={() => setDeleteTarget(null)}>Cancel</button><button className="modal-delete" disabled={deleting} onClick={() => void confirmDelete()}>{deleting ? 'Deleting…' : 'Delete'}</button></div></section></div>}
     {move && <div className="modal-backdrop"><section className="save-location-modal move-location-modal" role="dialog" aria-modal="true" aria-labelledby="move-location-title"><div className="save-modal-header"><div><h2 id="move-location-title">Move item</h2><p>Choose a collection or nested folder.</p></div><button className="modal-close" aria-label="Close move dialog" onClick={() => setMove(null)}>×</button></div><label className="save-field"><span><b>Folder / location</b><small>Workspace folders</small></span><div className="save-select"><Folder size={14} /><select value={move.location} onChange={(event) => setMove({ ...move, location: event.target.value })}>{moveLocations.map((location) => <option key={location.value} value={location.value}>{location.label}</option>)}</select></div></label><div className="save-modal-actions"><button className="modal-cancel" onClick={() => setMove(null)}>Cancel</button><button className="modal-save" disabled={!moveLocations.length} onClick={() => void confirmMove()}>Move</button></div></section></div>}
+    <ImportCollectionModal open={importOpen} onCancel={() => setImportOpen(false)} onImport={importCollection} />
   </>;
 }
