@@ -2,7 +2,9 @@
 name = "tesapi"
 version = "0.1.0"
 description = "TesAPI desktop API client"
-authors = ["you"]
+authors = ["Ridho Mujizat"]
+license = "MIT"
+repository = "https://github.com/ridhomujizat/TesAPI"
 edition = "2021"
 default-run = "tesapi"
 

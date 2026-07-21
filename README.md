@@ -93,3 +93,7 @@ Issues and pull requests are welcome. For substantial changes, open an issue fir
 ## Security
 
 Do not include API keys, tokens, cookies, authorization headers, or local environment files in bug reports. If you find a vulnerability that could expose secrets or execute requests without approval, report it privately to the repository owner instead of opening a public issue.
+
+## License
+
+TesAPI is available under the [MIT License](LICENSE). Third-party dependencies remain subject to their own licenses.
