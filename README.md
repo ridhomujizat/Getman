@@ -88,7 +88,10 @@ cargo test --manifest-path src-tauri/Cargo.toml
 
 ## Contributing
 
-Issues and pull requests are welcome. For substantial changes, open an issue first so the behavior and security impact can be agreed before implementation. Please keep changes focused, preserve the local-first storage model, and include a small regression check for non-trivial logic.
+Issues and pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md)
+before making changes; it is the source of truth for human and AI-assisted
+development. For substantial changes, open an issue first so the behavior and
+security impact can be agreed before implementation.
 
 ## Security
 
