@@ -10,9 +10,10 @@ use serde::Serialize;
 use serde_json::Value;
 use tauri::{AppHandle, Manager};
 
-use crate::workspace::{self, WorkspaceFile};
-
-const SCHEMA_VERSION: i64 = 1;
+use crate::{
+    mcp,
+    workspace::{self, WorkspaceFile},
+};
 
 pub struct RegistryState(pub Mutex<Connection>);
 
@@ -48,9 +49,7 @@ pub(crate) fn configure(connection: &Connection) -> Result<(), String> {
         .busy_timeout(std::time::Duration::from_secs(5))
         .map_err(|error| error.to_string())?;
     connection.execute_batch("CREATE TABLE IF NOT EXISTS workspaces (id TEXT PRIMARY KEY, name TEXT NOT NULL, sync_type TEXT NOT NULL CHECK (sync_type IN ('local','git','cloud')), root_path TEXT NOT NULL UNIQUE, git_remote TEXT, git_branch TEXT, created_at INTEGER NOT NULL, last_opened_at INTEGER); CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);").map_err(|error| error.to_string())?;
-    connection
-        .pragma_update(None, "user_version", SCHEMA_VERSION)
-        .map_err(|error| error.to_string())
+    mcp::schema::migrate(connection)
 }
 
 fn app_root(app: &AppHandle) -> Result<PathBuf, String> {
@@ -198,6 +197,12 @@ pub(crate) fn delete_workspace(connection: &mut Connection, id: &str) -> Result<
             "DELETE FROM settings WHERE key='last_workspace_id' AND value=?1",
             [serde_json::to_string(id).map_err(|error| error.to_string())?],
         )
+        .map_err(|error| error.to_string())?;
+    transaction
+        .execute("DELETE FROM mcp_policies WHERE workspace_id=?1", [id])
+        .map_err(|error| error.to_string())?;
+    transaction
+        .execute("DELETE FROM mcp_drafts WHERE workspace_id=?1", [id])
         .map_err(|error| error.to_string())?;
     transaction.commit().map_err(|error| error.to_string())
 }

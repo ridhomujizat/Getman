@@ -14,6 +14,7 @@ mod git_transport;
 mod git_ui_commands;
 mod git_worktree;
 mod http;
+pub mod mcp;
 mod registry_commands;
 mod storage;
 mod storage_collections;
@@ -31,10 +32,23 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             let registry = db::initialize(app.handle()).map_err(std::io::Error::other)?;
+            if let Ok(connection) = registry.0.lock() {
+                mcp::schema::recover(&connection, db::now()).map_err(std::io::Error::other)?;
+                let safety =
+                    mcp::policy::safety_settings(&connection).map_err(std::io::Error::other)?;
+                mcp::store::activity::enforce_retention(
+                    &connection,
+                    safety.activity_retention_days,
+                    safety.activity_max_rows,
+                )
+                .map_err(std::io::Error::other)?;
+            }
             app.manage(registry);
             app.manage(windows::WindowWorkspaceState::default());
             app.manage(workspace_io::WorkspaceQueueState::default());
             app.manage(workspace_watch::WorkspaceWatchState::default());
+            let broker = mcp::broker::start(app.handle()).map_err(std::io::Error::other)?;
+            app.manage(broker);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -74,6 +88,24 @@ pub fn run() {
             git_ui_commands::git_set_workspace_remote,
             git_ui_commands::git_test_workspace_remote,
             http::send_request,
+            mcp::commands::mcp_overview,
+            mcp::commands::mcp_set_global_state,
+            mcp::commands::mcp_set_safety_settings,
+            mcp::commands::mcp_config_preview,
+            mcp::commands::mcp_install_config,
+            mcp::commands::mcp_generate_manual_config,
+            mcp::commands::mcp_remove_config,
+            mcp::commands::mcp_set_client_access,
+            mcp::commands::mcp_list_policies,
+            mcp::commands::mcp_upsert_policy,
+            mcp::commands::mcp_list_activity,
+            mcp::commands::mcp_clear_activity,
+            mcp::commands::mcp_export_activity,
+            mcp::commands::mcp_list_approvals,
+            mcp::commands::mcp_get_draft_for_ui,
+            mcp::commands::mcp_decide_approval,
+            mcp::commands::mcp_list_workspace_collections,
+            mcp::commands::mcp_list_workspace_environments,
             storage::ensure_dirs,
             storage::read_json,
             storage::atomic_write_json,

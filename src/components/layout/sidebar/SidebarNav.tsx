@@ -1,4 +1,4 @@
-import { Folder, History, Layers3 } from 'lucide-react';
+import { Folder, History, Layers3, RadioTower } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { SidebarView } from './types';
 
@@ -14,6 +14,7 @@ export function SidebarNav({ active, onChange, action }: Props) {
       <button className={`icon-button${active === 'collections' ? ' active' : ''}`} title="Collections" onClick={() => onChange('collections')}><Folder size={15} /></button>
       <button className={`icon-button${active === 'history' ? ' active' : ''}`} title="History" onClick={() => onChange('history')}><History size={15} /></button>
       <button className={`icon-button${active === 'environments' ? ' active' : ''}`} title="Environments" onClick={() => onChange('environments')}><Layers3 size={15} /></button>
+      <button className={`icon-button${active === 'mcp' ? ' active' : ''}`} title="MCP Server" onClick={() => onChange('mcp')}><RadioTower size={15} /></button>
       {action}
     </div>
   );

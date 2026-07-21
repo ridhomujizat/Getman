@@ -8,6 +8,7 @@ import { WorkspaceSwitcher } from '../workspace/WorkspaceSwitcher';
 import { GitMenu } from '../git/components/GitMenu';
 import { useGitStore } from '../../store/gitStore';
 import { useCallback, useState } from 'react';
+import { McpSidebar } from './sidebar/McpSidebar';
 
 export type { WorkspaceView } from './sidebar/types';
 
@@ -32,7 +33,7 @@ export function Sidebar({ currentWorkspace, workspaces, onToast, onWorkspaceChan
 
   const changeView = (next: SidebarView) => {
     setView(next);
-    onWorkspaceChange(next === 'environments' ? 'environment' : 'api');
+    onWorkspaceChange(next === 'environments' ? 'environment' : next === 'mcp' ? 'mcp' : 'api');
   };
 
   return <aside className="sidebar" onContextMenu={(event) => event.preventDefault()}>
@@ -41,5 +42,6 @@ export function Sidebar({ currentWorkspace, workspaces, onToast, onWorkspaceChan
     {view === 'collections' && <CollectionsSidebar onToast={onToast} onViewChange={changeView} onWorkspaceChange={onWorkspaceChange} />}
     {view === 'history' && <HistorySidebar onToast={onToast} onViewChange={changeView} />}
     {view === 'environments' && <EnvironmentSidebar onToast={onToast} onViewChange={changeView} onWorkspaceChange={onWorkspaceChange} />}
+    {view === 'mcp' && <McpSidebar onViewChange={changeView} />}
   </aside>;
 }

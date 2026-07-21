@@ -30,7 +30,7 @@ fn migrates_legacy_registry_once_and_sets_version() {
         connection
             .pragma_query_value(None, "user_version", |row| row.get::<_, i64>(0))
             .unwrap(),
-        1
+        2
     );
     assert_eq!(
         connection

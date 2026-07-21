@@ -2,7 +2,7 @@ use std::time::{Duration, Instant};
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct KeyValue {
     pub key: String,
     pub value: String,
@@ -14,7 +14,7 @@ pub struct KeyValue {
     pub files: Option<Vec<UploadFile>>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UploadFile {
     pub name: String,
@@ -28,7 +28,7 @@ fn default_true() -> bool {
     true
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Body {
     #[serde(rename = "type")]
@@ -39,7 +39,7 @@ pub struct Body {
     pub form_data: Option<Vec<KeyValue>>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Auth {
     #[serde(rename = "type")]
@@ -58,7 +58,7 @@ pub struct Auth {
     pub add_to: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TesApiRequest {
     pub method: String,
@@ -114,10 +114,22 @@ fn classify(err: &reqwest::Error) -> HttpError {
 
 #[tauri::command]
 pub async fn send_request(req: TesApiRequest) -> Result<TesApiResponse, HttpError> {
+    execute_request(req, true).await
+}
+
+pub async fn execute_request(
+    req: TesApiRequest,
+    follow_redirects: bool,
+) -> Result<TesApiResponse, HttpError> {
     let method = reqwest::Method::from_bytes(req.method.as_bytes())
         .map_err(|_| HttpError::InvalidUrl(format!("Bad method: {}", req.method)))?;
 
     let client = reqwest::Client::builder()
+        .redirect(if follow_redirects {
+            reqwest::redirect::Policy::limited(10)
+        } else {
+            reqwest::redirect::Policy::none()
+        })
         .timeout(Duration::from_secs(30))
         .build()
         .map_err(|e| classify(&e))?;

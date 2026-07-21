@@ -1,2 +1,2 @@
-export type SidebarView = 'collections' | 'history' | 'environments';
-export type WorkspaceView = 'api' | 'environment';
+export type SidebarView = 'collections' | 'history' | 'environments' | 'mcp';
+export type WorkspaceView = 'api' | 'environment' | 'mcp';

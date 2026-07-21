@@ -33,6 +33,10 @@ import { OPEN_VARIABLES_EVENT } from './components/VariablePopover';
 import { useGitStore } from './store/gitStore';
 import { setSetting } from './lib/registry';
 import { useResizableLayout } from './hooks/useResizableLayout';
+import type { WorkspaceView } from './components/layout/Sidebar';
+import { McpWorkspace } from './components/mcp/McpWorkspace';
+import { McpApprovalDialog } from './components/mcp/approval/McpApprovalDialog';
+import { getMcpDraftForUi } from './lib/mcp/client';
 
 function validUrl(url: string): boolean {
   try {
@@ -44,14 +48,14 @@ function validUrl(url: string): boolean {
 }
 
 export default function App() {
-  const { request, response, tabs, activeTabId, loading, setLoading, setResponse, setError, closeTab, createRequest, markSaved } = useRequestStore();
+  const { request, response, tabs, activeTabId, loading, setLoading, setResponse, setError, closeTab, createRequest, openUnsaved, markSaved } = useRequestStore();
   const [toast, setToast] = useState<ToastMessage | null>(null);
   const [saveOpen, setSaveOpen] = useState(false);
   const [saveResponseOpen, setSaveResponseOpen] = useState(false);
   const [saveResponseAfterRequest, setSaveResponseAfterRequest] = useState(false);
   const [closeTabId, setCloseTabId] = useState<string | null>(null);
   const [closeAfterSave, setCloseAfterSave] = useState<string | null>(null);
-  const [workspaceView, setWorkspaceView] = useState<'api' | 'environment'>('api');
+  const [workspaceView, setWorkspaceView] = useState<WorkspaceView>('api');
   const [createWorkspaceOpen, setCreateWorkspaceOpen] = useState(false);
   const [manageWorkspacesOpen, setManageWorkspacesOpen] = useState(false);
   const [manageWorkspaceId, setManageWorkspaceId] = useState<string>();
@@ -258,6 +262,19 @@ export default function App() {
     return () => window.removeEventListener('keydown', handler);
   }, [activeTabId, hasActiveTab, loading, onSave, onSend, openNewRequest, requestClose, workspaceView]);
 
+  useEffect(() => {
+    const openDraft = (event: Event) => {
+      const draftId = (event as CustomEvent<string>).detail;
+      void getMcpDraftForUi(draftId).then((draft) => {
+        if (draft.workspaceId !== workspace.current?.id) throw new Error('Switch to the draft workspace before opening it.');
+        openUnsaved(draft.request);
+        setWorkspaceView('api');
+      }).catch((error) => showToast({ title: 'Could not open MCP draft', detail: String(error), tone: 'error' }));
+    };
+    window.addEventListener('tesapi-open-mcp-draft', openDraft);
+    return () => window.removeEventListener('tesapi-open-mcp-draft', openDraft);
+  }, [openUnsaved, showToast, workspace.current?.id]);
+
   const closingTab = tabs.find((tab) => tab.id === closeTabId);
   const activeTab = tabs.find((tab) => tab.id === activeTabId);
   const activeNode = activeTab?.origin ? useCollectionStore.getState().collectionsById[activeTab.origin.collectionId]?.nodesById[activeTab.origin.nodeId] : null;
@@ -282,8 +299,8 @@ export default function App() {
       <WorkspaceReadOnlyBanner reason={storageProvider.readOnlyReason()} />
       <WorkspaceSyncBanner paused={workspace.syncState === 'paused'} busy={collaboration.syncRetryBusy} onRetry={collaboration.retryPausedSync} />
       <GitConflictBanner workspaceRoot={workspace.current.rootPath} manifest={collaboration.gitManifest} busy={collaboration.gitConflictBusy} onResolve={(file, choice) => void collaboration.resolveGitConflict(file, choice)} />
-      <main className={`${workspaceView === 'environment' ? 'main environment-main' : `main${hasActiveTab ? ' resizable-main' : ' empty-request-main'}`}`} style={hasActiveTab && workspaceView === 'api' ? { '--response-height': `${layout.responseHeight}px` } as React.CSSProperties : undefined}>
-        {workspaceView === 'environment' ? <EnvironmentEditor onToast={showToast} /> : hasActiveTab ? <>
+      <main className={`${workspaceView === 'environment' ? 'main environment-main' : workspaceView === 'mcp' ? 'main mcp-main' : `main${hasActiveTab ? ' resizable-main' : ' empty-request-main'}`}`} style={hasActiveTab && workspaceView === 'api' ? { '--response-height': `${layout.responseHeight}px` } as React.CSSProperties : undefined}>
+        {workspaceView === 'mcp' ? <McpWorkspace currentWorkspace={workspace.current} workspaces={workspace.workspaces} onToast={showToast} /> : workspaceView === 'environment' ? <EnvironmentEditor onToast={showToast} /> : hasActiveTab ? <>
           <RequestBuilder onSend={onSend} onCancel={onCancel} onToast={showToast} onSave={onSave} onCloseTab={requestClose} />
           <div className="pane-resize-handle" role="separator" aria-orientation="horizontal" aria-label="Resize request and response panes" aria-valuemin={150} aria-valuemax={Math.max(150, window.innerHeight - 266)} aria-valuenow={layout.responseHeight} tabIndex={0} onPointerDown={layout.startResponseResize} onDoubleClick={layout.resetResponse} onKeyDown={(event) => { if (event.key === 'ArrowUp') layout.resizeResponseBy(16); if (event.key === 'ArrowDown') layout.resizeResponseBy(-16); }} />
           <ResponseViewer onRetry={onSend} onSaveResponse={requestSaveResponse} />
@@ -358,6 +375,7 @@ export default function App() {
         onAutoCommitChange={async (id, enabled) => { await setSetting(`workspace:${id}:autoCommitOnSave`, enabled); if (id === workspace.current?.id) storageProvider.enableGitSync(enabled); showToast({ title: enabled ? 'Auto-commit enabled' : 'Manual commits enabled' }); }}
       />
       <WorkspaceSwitchDialog open={!!switchTarget && !saveForWorkspaceSwitch} workspaceName={switchTarget?.name ?? ''} saving={switchSaving} onCancel={() => setSwitchTarget(null)} onDiscard={() => { if (switchTarget) void performWorkspaceSwitch(switchTarget, true); }} onSaveAll={() => void saveAllForWorkspaceSwitch()} />
+      <McpApprovalDialog workspaceId={workspace.current.id} onToast={showToast} />
       <SecretReviewDialog review={collaboration.secretReview} busy={collaboration.secretReviewBusy} error={collaboration.secretReviewError} onComplete={(choice) => void collaboration.completeSecretReview(choice)} />
       <GitIdentityDialog open={collaboration.identityOpen} busy={collaboration.identityBusy} error={collaboration.identityError} onSave={(name, email) => void collaboration.saveIdentity(name, email)} />
       <Toast message={toast} onClose={() => setToast(null)} />
