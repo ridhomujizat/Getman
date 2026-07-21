@@ -17,6 +17,11 @@ useRequestStore.getState().setUrl('https://example.com/items?limit=2');
 active = useRequestStore.getState().tabs.find((tab) => tab.id === useRequestStore.getState().activeTabId)!;
 assert.equal(isTabDirty(active), true);
 
+useRequestStore.getState().setUrl('https://example.com/items/:id');
+assert.equal(useRequestStore.getState().request.pathVariables?.[0].key, 'id');
+useRequestStore.getState().setPathVariables([{ ...useRequestStore.getState().request.pathVariables![0], value: 'item 42' }]);
+assert.equal(useRequestStore.getState().request.pathVariables?.[0].value, 'item 42');
+
 useRequestStore.getState().setUrl('https://example.com/items');
 active = useRequestStore.getState().tabs.find((tab) => tab.id === useRequestStore.getState().activeTabId)!;
 assert.equal(isTabDirty(active), false);

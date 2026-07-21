@@ -8,6 +8,8 @@ import { WorkspaceSwitcher } from '../workspace/WorkspaceSwitcher';
 import { GitMenu } from '../git/components/GitMenu';
 import { useGitStore } from '../../store/gitStore';
 import { useCallback, useState } from 'react';
+import { SidebarFooter } from './sidebar/SidebarFooter';
+import type { SettingsSection } from '../settings/SettingsModal';
 
 export type { WorkspaceView } from './sidebar/types';
 
@@ -21,9 +23,10 @@ interface Props {
   onOpenWorkspaceWindow: (workspace: WorkspaceRecord) => void;
   onRenameWorkspace: (id: string, name: string) => Promise<void>;
   onManageWorkspaces: (workspace?: WorkspaceRecord) => void;
+  onOpenSettings: (section: SettingsSection) => void;
 }
 
-export function Sidebar({ currentWorkspace, workspaces, onToast, onWorkspaceChange, onCreateWorkspace, onOpenWorkspace, onOpenWorkspaceWindow, onRenameWorkspace, onManageWorkspaces }: Props) {
+export function Sidebar({ currentWorkspace, workspaces, onToast, onWorkspaceChange, onCreateWorkspace, onOpenWorkspace, onOpenWorkspaceWindow, onRenameWorkspace, onManageWorkspaces, onOpenSettings }: Props) {
   const [view, setView] = useState<SidebarView>('collections');
   const [gitMenuOpen, setGitMenuOpen] = useState(false);
   const git = useGitStore();
@@ -41,5 +44,6 @@ export function Sidebar({ currentWorkspace, workspaces, onToast, onWorkspaceChan
     {view === 'collections' && <CollectionsSidebar onToast={onToast} onViewChange={changeView} onWorkspaceChange={onWorkspaceChange} />}
     {view === 'history' && <HistorySidebar onToast={onToast} onViewChange={changeView} />}
     {view === 'environments' && <EnvironmentSidebar onToast={onToast} onViewChange={changeView} onWorkspaceChange={onWorkspaceChange} />}
+    <SidebarFooter onOpen={onOpenSettings} />
   </aside>;
 }

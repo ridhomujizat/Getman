@@ -42,6 +42,7 @@ export interface TesApiRequest {
   method: Method;
   url: string;
   params: KeyValue[];
+  pathVariables?: KeyValue[];
   headers: KeyValue[];
   body: Body;
   auth: Auth;

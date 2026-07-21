@@ -1,5 +1,6 @@
 import type { TesApiRequest, KeyValue } from '../../types/index.ts';
 import { buildUrl } from '../params.ts';
+import { substitutePathVariables } from '../pathVariables.ts';
 
 export interface CurlExportOptions {
   dialect?: 'bash';
@@ -15,11 +16,11 @@ function enabled(rows: KeyValue[] | undefined): KeyValue[] {
 
 function requestUrl(request: TesApiRequest): string {
   if (request.auth.type !== 'api-key' || request.auth.addTo !== 'query' || !request.auth.key) {
-    return buildUrl(request.url, request.params);
+    return substitutePathVariables(buildUrl(request.url, request.params), request.pathVariables);
   }
   const params = request.params.filter((param) => param.key !== request.auth.key);
   params.push({ id: 'curl-api-key', key: request.auth.key, value: request.auth.value ?? '', enabled: true });
-  return buildUrl(request.url, params);
+  return substitutePathVariables(buildUrl(request.url, params), request.pathVariables);
 }
 
 export function toCurl(request: TesApiRequest, _options: CurlExportOptions = {}): string {

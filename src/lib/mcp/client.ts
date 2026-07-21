@@ -1,0 +1,21 @@
+import { invoke } from '@tauri-apps/api/core';
+import type { ActivityQuery, CollectionOption, ConfigPreview, EnvironmentOption, McpActivity, McpApproval, McpCapability, McpClient, McpDraftForUi, McpOverview, McpPolicy, McpSafetySettings, PolicyInput } from './types';
+
+export const getMcpOverview = () => invoke<McpOverview>('mcp_overview');
+export const setMcpGlobalState = (enabled: boolean, readOnly: boolean) => invoke<void>('mcp_set_global_state', { enabled, readOnly });
+export const setMcpSafetySettings = (settings: McpSafetySettings) => invoke<McpSafetySettings>('mcp_set_safety_settings', { settings });
+export const previewMcpConfig = (kind: string) => invoke<ConfigPreview>('mcp_config_preview', { kind });
+export const installMcpConfig = (kind: string) => invoke<McpClient>('mcp_install_config', { kind });
+export const generateManualMcpConfig = (kind: string) => invoke<ConfigPreview>('mcp_generate_manual_config', { kind });
+export const removeMcpConfig = (kind: string) => invoke<void>('mcp_remove_config', { kind });
+export const setMcpClientAccess = (clientId: string, enabled: boolean, capability: McpCapability) => invoke<void>('mcp_set_client_access', { clientId, enabled, capability });
+export const listMcpPolicies = () => invoke<McpPolicy[]>('mcp_list_policies');
+export const upsertMcpPolicy = (input: PolicyInput) => invoke<McpPolicy>('mcp_upsert_policy', { input });
+export const listMcpActivity = (query: ActivityQuery = {}) => invoke<McpActivity[]>('mcp_list_activity', { query });
+export const clearMcpActivity = () => invoke<void>('mcp_clear_activity');
+export const exportMcpActivity = (format: 'csv' | 'jsonl', query: ActivityQuery = {}) => invoke<string>('mcp_export_activity', { format, query });
+export const listMcpApprovals = (workspaceId?: string) => invoke<McpApproval[]>('mcp_list_approvals', { workspaceId });
+export const getMcpDraftForUi = (draftId: string) => invoke<McpDraftForUi>('mcp_get_draft_for_ui', { draftId });
+export const decideMcpApproval = (approvalId: string, decision: 'allow_once' | 'allow_session' | 'deny') => invoke<void>('mcp_decide_approval', { approvalId, decision });
+export const listMcpWorkspaceCollections = (workspaceId: string) => invoke<CollectionOption[]>('mcp_list_workspace_collections', { workspaceId });
+export const listMcpWorkspaceEnvironments = (workspaceId: string) => invoke<EnvironmentOption[]>('mcp_list_workspace_environments', { workspaceId });

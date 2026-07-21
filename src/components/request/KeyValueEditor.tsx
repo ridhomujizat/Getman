@@ -9,9 +9,11 @@ interface Props {
   onChange: (rows: KeyValue[]) => void;
   showDescription?: boolean;
   showSecret?: boolean;
+  readOnlyKeys?: boolean;
+  allowDelete?: boolean;
 }
 
-export function KeyValueEditor({ rows, onChange, showDescription = true, showSecret = false }: Props) {
+export function KeyValueEditor({ rows, onChange, showDescription = true, showSecret = false, readOnlyKeys = false, allowDelete = true }: Props) {
   const update = (id: string, patch: Partial<KeyValue>) =>
     onChange(rows.map((r) => (r.id === id ? { ...r, ...patch } : r)));
 
@@ -43,6 +45,7 @@ export function KeyValueEditor({ rows, onChange, showDescription = true, showSec
           <VariableInput
             className="cell"
             placeholder="Key"
+            readOnly={readOnlyKeys}
             value={row.key}
             onChange={(e) => edit(row, { key: e.target.value })}
           />
@@ -66,9 +69,9 @@ export function KeyValueEditor({ rows, onChange, showDescription = true, showSec
               onChange={(e) => edit(row, { description: e.target.value })}
             />
           )}
-          <button className="kv-delete" title="Remove" onClick={() => remove(row.id)}>
+          {allowDelete && <button className="kv-delete" title="Remove" onClick={() => remove(row.id)}>
             <Trash2 size={13} />
-          </button>
+          </button>}
         </div>
       ))}
     </div>

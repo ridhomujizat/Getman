@@ -92,7 +92,7 @@ function collect(text: string, names: Set<string>): void {
 export function requestVariableNames(request: TesApiRequest): string[] {
   const names = new Set<string>();
   collect(request.url, names);
-  for (const row of [...request.params, ...request.headers, ...(request.body.formData ?? [])]) {
+  for (const row of [...request.params, ...(request.pathVariables ?? []), ...request.headers, ...(request.body.formData ?? [])]) {
     collect(row.key, names);
     collect(row.value, names);
   }

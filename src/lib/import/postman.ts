@@ -1,6 +1,7 @@
 import type { Auth, Body, KeyValue, Method, SavedResponse, TesApiRequest, TesApiResponse, TreeNode } from '../../types';
 import { uid } from '../id.ts';
 import { withTrailingBlank } from '../params.ts';
+import { syncPathVariables } from '../pathVariables.ts';
 
 interface PostmanItem { name?: unknown; item?: PostmanItem[]; request?: unknown; response?: unknown[] }
 interface PostmanCollection { info?: { name?: unknown; schema?: unknown }; item?: PostmanItem[] }
@@ -36,8 +37,8 @@ function rows(value: unknown, fileMode = false): KeyValue[] {
   }));
 }
 
-function urlOf(value: unknown): { url: string; params: KeyValue[] } {
-  if (typeof value === 'string') return { url: value, params: withTrailingBlank([]) };
+function urlOf(value: unknown): { url: string; params: KeyValue[]; pathVariables: KeyValue[] } {
+  if (typeof value === 'string') return { url: value, params: withTrailingBlank([]), pathVariables: syncPathVariables(value) };
   const url = record(value);
   let raw = text(url.raw);
   if (!raw) {
@@ -47,7 +48,7 @@ function urlOf(value: unknown): { url: string; params: KeyValue[] } {
     const port = text(url.port);
     raw = `${protocol ? `${protocol}://` : ''}${host}${port ? `:${port}` : ''}${path ? `/${path}` : ''}`;
   }
-  return { url: raw, params: rows(url.query) };
+  return { url: raw, params: rows(url.query), pathVariables: syncPathVariables(raw, rows(url.variable)) };
 }
 
 function bodyOf(value: unknown, warnings: Set<string>): Body {
@@ -104,7 +105,7 @@ function requestNode(item: PostmanItem, warnings: Set<string>): TreeNode | null 
   const target = urlOf(request.url);
   const name = text(item.name) || `${method} request`;
   const converted: TesApiRequest = {
-    id: uid(), name, method, url: target.url, params: target.params,
+    id: uid(), name, method, url: target.url, params: target.params, pathVariables: target.pathVariables,
     headers: rows(request.header), body: bodyOf(request.body, warnings), auth: authOf(request.auth, warnings),
   };
   return { id: uid(), type: 'request', name, request: converted, savedResponses: savedResponses(item.response) };

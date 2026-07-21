@@ -25,6 +25,7 @@ const request: TesApiRequest = {
   method: 'POST',
   url: '{{base_url}}/{{base_url}}',
   params: [{ id: 'param', key: '{{param_key}}', value: '{{param_value}}', enabled: true }],
+  pathVariables: [{ id: 'path', key: 'id', value: '{{path_value}}', enabled: true }],
   headers: [{ id: 'header', key: 'Authorization', value: 'Bearer {{token}}', enabled: true }],
   body: {
     type: 'form-data',
@@ -33,7 +34,7 @@ const request: TesApiRequest = {
   },
   auth: { type: 'basic', username: '{{username}}', password: '{{password}}' },
 };
-assert.deepEqual(requestVariableNames(request), ['base_url', 'param_key', 'param_value', 'token', 'form_key', 'form_value', 'raw_value', 'username', 'password']);
+assert.deepEqual(requestVariableNames(request), ['base_url', 'param_key', 'param_value', 'path_value', 'token', 'form_key', 'form_value', 'raw_value', 'username', 'password']);
 assert.equal(requestVariables(request, environment('env')).filter((status) => status.state === 'resolved').length, 1);
 
 const fiftyTokens = Array.from({ length: 50 }, (_, index) => `{{var_${index}}}`).join(' ');
