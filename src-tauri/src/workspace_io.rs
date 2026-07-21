@@ -48,6 +48,16 @@ impl WorkspaceQueueState {
             .get(root)
             .cloned())
     }
+
+    fn is_busy(&self, root: &Path) -> Result<bool, String> {
+        let lock = self.lock_for(root)?;
+        let result = match lock.try_lock() {
+            Ok(_) => Ok(false),
+            Err(TryLockError::WouldBlock) => Ok(true),
+            Err(TryLockError::Poisoned(_)) => Err("Workspace queue lock poisoned".into()),
+        };
+        result
+    }
 }
 
 #[derive(Serialize)]
@@ -162,7 +172,7 @@ pub async fn workspace_write_file(
 
 #[cfg(test)]
 mod tests {
-    use super::{bytes_hash, compare_and_swap_write};
+    use super::{bytes_hash, compare_and_swap_write, WorkspaceQueueState};
     use std::{
         fs,
         time::{SystemTime, UNIX_EPOCH},
@@ -186,6 +196,17 @@ mod tests {
         assert!(!result.written);
         assert_eq!(fs::read_to_string(path).unwrap(), "external");
         let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn reports_a_locked_workspace_as_busy() {
+        let state = WorkspaceQueueState::default();
+        let root = std::env::temp_dir().join("tesapi-busy-probe");
+        let lock = state.lock_for(&root).unwrap();
+        let guard = lock.lock().unwrap();
+        assert!(state.is_busy(&root).unwrap());
+        drop(guard);
+        assert!(!state.is_busy(&root).unwrap());
     }
 }
 
@@ -294,4 +315,12 @@ pub async fn workspace_flush(
     })
     .await
     .map_err(|error| error.to_string())?
+}
+
+#[tauri::command]
+pub fn workspace_queue_busy(
+    root_path: String,
+    state: State<'_, WorkspaceQueueState>,
+) -> Result<bool, String> {
+    state.is_busy(Path::new(&root_path))
 }

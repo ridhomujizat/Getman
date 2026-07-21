@@ -31,6 +31,8 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             let registry = db::initialize(app.handle()).map_err(std::io::Error::other)?;
             if let Ok(connection) = registry.0.lock() {
@@ -89,6 +91,7 @@ pub fn run() {
             git_ui_commands::git_set_workspace_remote,
             git_ui_commands::git_test_workspace_remote,
             http::send_request,
+            http::http_active_requests,
             mcp::commands::mcp_overview,
             mcp::commands::mcp_set_global_state,
             mcp::commands::mcp_set_safety_settings,
@@ -121,6 +124,7 @@ pub fn run() {
             workspace_io::workspace_delete_file,
             workspace_io::workspace_append_line,
             workspace_io::workspace_flush,
+            workspace_io::workspace_queue_busy,
             workspace_watch::watch_workspace,
             workspace::prepare_workspace_gitignore,
         ])

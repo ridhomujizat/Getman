@@ -38,6 +38,8 @@ import { McpApprovalDialog } from './components/mcp/approval/McpApprovalDialog';
 import { getMcpDraftForUi } from './lib/mcp/client';
 import { SettingsModal, type SettingsSection } from './components/settings/SettingsModal';
 import { useMcpWorkspaceEvents } from './hooks/useMcpWorkspaceEvents';
+import { useAppUpdater } from './hooks/useAppUpdater';
+import { UpdatePrompt } from './components/settings/UpdatePrompt';
 
 function validUrl(url: string): boolean {
   try {
@@ -73,6 +75,7 @@ export default function App() {
   const showMcpRefreshError = useCallback((error: unknown) => showToast({ title: 'Could not refresh MCP workspace changes', detail: String(error), tone: 'error' }), [showToast]);
   const workspace = useWorkspaceController(showToast);
   const collaboration = useWorkspaceCollaboration(workspace.current, workspace.ready, workspace.retrySync, showToast);
+  const updater = useAppUpdater({ ready: workspace.ready, currentWorkspace: workspace.current, workspaces: workspace.workspaces, onToast: showToast });
   useMcpWorkspaceEvents(workspace.current, showMcpRefreshError);
 
   useEffect(() => {
@@ -378,7 +381,8 @@ export default function App() {
         onDelete={async (id) => { await workspace.remove(id); showToast({ title: 'Workspace removed', detail: 'Its files remain on disk.' }); }}
         onAutoCommitChange={async (id, enabled) => { await setSetting(`workspace:${id}:autoCommitOnSave`, enabled); if (id === workspace.current?.id) storageProvider.enableGitSync(enabled); showToast({ title: enabled ? 'Auto-commit enabled' : 'Manual commits enabled' }); }}
       />
-      <SettingsModal open={settingsSection !== null} section={settingsSection ?? 'general'} currentWorkspace={workspace.current} workspaces={workspace.workspaces} onSectionChange={setSettingsSection} onClose={() => setSettingsSection(null)} onToast={showToast} />
+      <SettingsModal open={settingsSection !== null} section={settingsSection ?? 'general'} currentWorkspace={workspace.current} workspaces={workspace.workspaces} onSectionChange={setSettingsSection} onClose={() => setSettingsSection(null)} onToast={showToast} onInstallUpdate={updater.install} />
+      <UpdatePrompt onInstall={updater.install} onOpenSettings={() => setSettingsSection('general')} onToast={showToast} />
       <WorkspaceSwitchDialog open={!!switchTarget && !saveForWorkspaceSwitch} workspaceName={switchTarget?.name ?? ''} saving={switchSaving} onCancel={() => setSwitchTarget(null)} onDiscard={() => { if (switchTarget) void performWorkspaceSwitch(switchTarget, true); }} onSaveAll={() => void saveAllForWorkspaceSwitch()} />
       <McpApprovalDialog workspaceId={workspace.current.id} onToast={showToast} />
       <SecretReviewDialog review={collaboration.secretReview} busy={collaboration.secretReviewBusy} error={collaboration.secretReviewError} onComplete={(choice) => void collaboration.completeSecretReview(choice)} />

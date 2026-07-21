@@ -1,4 +1,24 @@
-use std::time::Instant;
+use std::{
+    sync::atomic::{AtomicUsize, Ordering},
+    time::Instant,
+};
+
+static ACTIVE_REQUESTS: AtomicUsize = AtomicUsize::new(0);
+
+struct RequestActivity;
+
+impl RequestActivity {
+    fn start() -> Self {
+        ACTIVE_REQUESTS.fetch_add(1, Ordering::Relaxed);
+        Self
+    }
+}
+
+impl Drop for RequestActivity {
+    fn drop(&mut self) {
+        ACTIVE_REQUESTS.fetch_sub(1, Ordering::Relaxed);
+    }
+}
 
 use serde::{Deserialize, Serialize};
 
@@ -119,10 +139,16 @@ pub async fn send_request(req: TesApiRequest) -> Result<TesApiResponse, HttpErro
     execute_request(req, true).await
 }
 
+#[tauri::command]
+pub fn http_active_requests() -> usize {
+    ACTIVE_REQUESTS.load(Ordering::Relaxed)
+}
+
 pub async fn execute_request(
     req: TesApiRequest,
     follow_redirects: bool,
 ) -> Result<TesApiResponse, HttpError> {
+    let _activity = RequestActivity::start();
     let method = reqwest::Method::from_bytes(req.method.as_bytes())
         .map_err(|_| HttpError::InvalidUrl(format!("Bad method: {}", req.method)))?;
 
@@ -248,7 +274,16 @@ pub async fn execute_request(
 
 #[cfg(test)]
 mod tests {
-    use super::TesApiRequest;
+    use super::{http_active_requests, RequestActivity, TesApiRequest};
+
+    #[test]
+    fn tracks_active_requests_until_the_guard_drops() {
+        assert_eq!(http_active_requests(), 0);
+        let activity = RequestActivity::start();
+        assert_eq!(http_active_requests(), 1);
+        drop(activity);
+        assert_eq!(http_active_requests(), 0);
+    }
 
     #[test]
     fn deserializes_multipart_file() {

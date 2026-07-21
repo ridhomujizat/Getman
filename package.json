@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "check:version": "node scripts/check-version.mjs",
     "preview": "vite preview",
     "tauri": "node scripts/tauri.mjs"
   },
@@ -21,6 +22,8 @@
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-dialog": "^2.7.2",
     "@tauri-apps/plugin-opener": "^2",
+    "@tauri-apps/plugin-process": "^2.3.1",
+    "@tauri-apps/plugin-updater": "^2.10.1",
     "lucide-react": "^1.25.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
