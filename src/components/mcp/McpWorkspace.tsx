@@ -10,7 +10,7 @@ import './styles/shell.css';
 
 type Tab = 'setup' | 'activity' | 'safety';
 
-export function McpWorkspace({ currentWorkspace, workspaces, onToast }: McpWorkspaceProps) {
+export function McpWorkspace({ currentWorkspace, workspaces, onToast, embedded = false }: McpWorkspaceProps) {
   const [tab, setTab] = useState<Tab>(() => (sessionStorage.getItem('tesapi:mcp-tab') as Tab | null) ?? 'setup');
   const refresh = useMcpStore((state) => state.refresh);
   const overview = useMcpStore((state) => state.overview);
@@ -25,7 +25,7 @@ export function McpWorkspace({ currentWorkspace, workspaces, onToast }: McpWorks
   const changeTab = (next: Tab) => { setTab(next); sessionStorage.setItem('tesapi:mcp-tab', next); };
 
   return (
-    <section className="mcp-workspace">
+    <section className={`mcp-workspace${embedded ? ' embedded' : ''}`}>
       <McpHeader overview={overview} onToast={onToast} />
       <nav className="mcp-tabs" aria-label="MCP Server sections">
         {(['setup', 'activity', 'safety'] as const).map((item) => <button key={item} className={tab === item ? 'active' : ''} onClick={() => changeTab(item)}>{item}</button>)}

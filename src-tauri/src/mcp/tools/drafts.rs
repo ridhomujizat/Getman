@@ -9,7 +9,7 @@ use crate::mcp::{
 };
 
 use super::read::required;
-use super::{integer, text, with_connection, ToolContext, ToolError};
+use super::{integer, object_value, text, with_connection, ToolContext, ToolError};
 
 pub fn call(context: &ToolContext<'_>) -> Result<Value, ToolError> {
     match context.tool_name {
@@ -64,8 +64,11 @@ fn create(context: &ToolContext<'_>) -> Result<Value, ToolError> {
         .get("request")
         .cloned()
         .ok_or_else(|| ToolError::new("INVALID_INPUT", "Saved request is invalid"))?
+    } else if context.arguments.get("request").is_some() {
+        object_value(context.arguments, "request")
+            .ok_or_else(|| ToolError::new("INVALID_INPUT", "request must be an object"))?
     } else {
-        context.arguments.get("request").cloned().unwrap_or_else(|| json!({"id":"","name":"Untitled request","method":"GET","url":"","params":[],"headers":[],"body":{"type":"none"},"auth":{"type":"none"}}))
+        json!({"id":"","name":"Untitled request","method":"GET","url":"","params":[],"headers":[],"body":{"type":"none"},"auth":{"type":"none"}})
     };
     validate_request(&request)?;
     let draft = with_connection(context.app, |connection| {
@@ -95,10 +98,10 @@ fn update(context: &ToolContext<'_>) -> Result<Value, ToolError> {
         &draft.workspace_id,
         draft.origin_collection_id.as_deref(),
     )?;
-    let patch = context
-        .arguments
-        .get("patch")
-        .and_then(Value::as_object)
+    let patch = object_value(context.arguments, "patch")
+        .ok_or_else(|| ToolError::new("INVALID_INPUT", "patch must be an object"))?;
+    let patch = patch
+        .as_object()
         .ok_or_else(|| ToolError::new("INVALID_INPUT", "patch must be an object"))?;
     let request = draft
         .request

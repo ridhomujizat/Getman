@@ -2,7 +2,6 @@ use serde_json::{json, Value};
 use tauri::{Emitter, Manager};
 
 use crate::{
-    git_commands, git_commit,
     mcp::{
         policy::{self, PolicyContext},
         redaction, security,
@@ -14,7 +13,7 @@ use crate::{
 };
 
 use super::read::required;
-use super::{approval, integer, text, with_connection, ToolContext, ToolError};
+use super::{approval, integer, text, with_connection, write, ToolContext, ToolError};
 
 pub async fn call(context: &ToolContext<'_>) -> Result<Value, ToolError> {
     let draft_id = required(context.arguments, "draftId")?;
@@ -111,31 +110,8 @@ pub async fn call(context: &ToolContext<'_>) -> Result<Value, ToolError> {
         &queue,
     )
     .map_err(internal)?;
-    let auto_commit = with_connection(context.app, |connection| {
-        policy::setting_bool(
-            connection,
-            &format!("workspace:{}:autoCommitOnSave", current.workspace_id),
-            false,
-        )
-    })
-    .map_err(internal)?;
-    let git_warning = if auto_commit && workspace_record.sync_type == "git" {
-        let paths = saved.relative_paths.clone();
-        git_commands::queued_git(
-            workspace_record.root_path.clone(),
-            context.app.state::<WorkspaceQueueState>(),
-            move |root, _cancel| {
-                let repo =
-                    git2::Repository::open(root).map_err(|error| error.message().to_owned())?;
-                git_commit::commit_relative_paths(&repo, &paths)
-            },
-        )
-        .await
-        .err()
-    } else {
-        None
-    };
-    let _ = context.app.emit("mcp-workspace-saved", json!({"workspaceId":current.workspace_id,"collectionId":collection_id,"requestId":saved.request_id}));
+    let git_warning = write::auto_commit(context, &workspace_record, &saved.relative_paths).await?;
+    let _ = context.app.emit("mcp-workspace-saved", json!({"workspaceId":current.workspace_id,"collectionId":collection_id,"folderId":folder_id,"requestId":saved.request_id}));
     Ok(
         json!({"saved":true,"workspaceId":current.workspace_id,"collectionId":collection_id,"requestId":saved.request_id,"gitWarning":git_warning}),
     )

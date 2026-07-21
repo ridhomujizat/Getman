@@ -34,9 +34,10 @@ import { useGitStore } from './store/gitStore';
 import { setSetting } from './lib/registry';
 import { useResizableLayout } from './hooks/useResizableLayout';
 import type { WorkspaceView } from './components/layout/Sidebar';
-import { McpWorkspace } from './components/mcp/McpWorkspace';
 import { McpApprovalDialog } from './components/mcp/approval/McpApprovalDialog';
 import { getMcpDraftForUi } from './lib/mcp/client';
+import { SettingsModal, type SettingsSection } from './components/settings/SettingsModal';
+import { useMcpWorkspaceEvents } from './hooks/useMcpWorkspaceEvents';
 
 function validUrl(url: string): boolean {
   try {
@@ -56,6 +57,7 @@ export default function App() {
   const [closeTabId, setCloseTabId] = useState<string | null>(null);
   const [closeAfterSave, setCloseAfterSave] = useState<string | null>(null);
   const [workspaceView, setWorkspaceView] = useState<WorkspaceView>('api');
+  const [settingsSection, setSettingsSection] = useState<SettingsSection | null>(null);
   const [createWorkspaceOpen, setCreateWorkspaceOpen] = useState(false);
   const [manageWorkspacesOpen, setManageWorkspacesOpen] = useState(false);
   const [manageWorkspaceId, setManageWorkspaceId] = useState<string>();
@@ -68,8 +70,10 @@ export default function App() {
   const layout = useResizableLayout();
 
   const showToast = useCallback((message: ToastMessage) => setToast(message), []);
+  const showMcpRefreshError = useCallback((error: unknown) => showToast({ title: 'Could not refresh MCP workspace changes', detail: String(error), tone: 'error' }), [showToast]);
   const workspace = useWorkspaceController(showToast);
   const collaboration = useWorkspaceCollaboration(workspace.current, workspace.ready, workspace.retrySync, showToast);
+  useMcpWorkspaceEvents(workspace.current, showMcpRefreshError);
 
   useEffect(() => {
     useGitStore.getState().configure(workspace.current);
@@ -287,7 +291,7 @@ export default function App() {
 
   return (
     <div className="shell" style={{ '--sidebar-width': `${layout.sidebarWidth}px` } as React.CSSProperties}>
-      <Sidebar currentWorkspace={workspace.current} workspaces={workspace.workspaces} onToast={showToast} onWorkspaceChange={setWorkspaceView} onCreateWorkspace={() => setCreateWorkspaceOpen(true)} onManageWorkspaces={(target) => { setManageWorkspaceId(target?.id ?? workspace.current?.id); setManageWorkspacesOpen(true); }} onOpenWorkspace={requestWorkspaceSwitch} onOpenWorkspaceWindow={(target) => void workspace.openNewWindow(target).catch((error) => showToast({ title: 'Could not open workspace window', detail: String(error), tone: 'error' }))} onRenameWorkspace={(id, name) => {
+      <Sidebar currentWorkspace={workspace.current} workspaces={workspace.workspaces} onToast={showToast} onWorkspaceChange={setWorkspaceView} onOpenSettings={setSettingsSection} onCreateWorkspace={() => setCreateWorkspaceOpen(true)} onManageWorkspaces={(target) => { setManageWorkspaceId(target?.id ?? workspace.current?.id); setManageWorkspacesOpen(true); }} onOpenWorkspace={requestWorkspaceSwitch} onOpenWorkspaceWindow={(target) => void workspace.openNewWindow(target).catch((error) => showToast({ title: 'Could not open workspace window', detail: String(error), tone: 'error' }))} onRenameWorkspace={(id, name) => {
         if (storageProvider.isReadOnly()) {
           showToast({ title: 'Workspace is read-only', detail: 'Upgrade TesAPI before renaming this workspace.', tone: 'error' });
           return Promise.resolve();
@@ -299,8 +303,8 @@ export default function App() {
       <WorkspaceReadOnlyBanner reason={storageProvider.readOnlyReason()} />
       <WorkspaceSyncBanner paused={workspace.syncState === 'paused'} busy={collaboration.syncRetryBusy} onRetry={collaboration.retryPausedSync} />
       <GitConflictBanner workspaceRoot={workspace.current.rootPath} manifest={collaboration.gitManifest} busy={collaboration.gitConflictBusy} onResolve={(file, choice) => void collaboration.resolveGitConflict(file, choice)} />
-      <main className={`${workspaceView === 'environment' ? 'main environment-main' : workspaceView === 'mcp' ? 'main mcp-main' : `main${hasActiveTab ? ' resizable-main' : ' empty-request-main'}`}`} style={hasActiveTab && workspaceView === 'api' ? { '--response-height': `${layout.responseHeight}px` } as React.CSSProperties : undefined}>
-        {workspaceView === 'mcp' ? <McpWorkspace currentWorkspace={workspace.current} workspaces={workspace.workspaces} onToast={showToast} /> : workspaceView === 'environment' ? <EnvironmentEditor onToast={showToast} /> : hasActiveTab ? <>
+      <main className={workspaceView === 'environment' ? 'main environment-main' : `main${hasActiveTab ? ' resizable-main' : ' empty-request-main'}`} style={hasActiveTab && workspaceView === 'api' ? { '--response-height': `${layout.responseHeight}px` } as React.CSSProperties : undefined}>
+        {workspaceView === 'environment' ? <EnvironmentEditor onToast={showToast} /> : hasActiveTab ? <>
           <RequestBuilder onSend={onSend} onCancel={onCancel} onToast={showToast} onSave={onSave} onCloseTab={requestClose} />
           <div className="pane-resize-handle" role="separator" aria-orientation="horizontal" aria-label="Resize request and response panes" aria-valuemin={150} aria-valuemax={Math.max(150, window.innerHeight - 266)} aria-valuenow={layout.responseHeight} tabIndex={0} onPointerDown={layout.startResponseResize} onDoubleClick={layout.resetResponse} onKeyDown={(event) => { if (event.key === 'ArrowUp') layout.resizeResponseBy(16); if (event.key === 'ArrowDown') layout.resizeResponseBy(-16); }} />
           <ResponseViewer onRetry={onSend} onSaveResponse={requestSaveResponse} />
@@ -374,6 +378,7 @@ export default function App() {
         onDelete={async (id) => { await workspace.remove(id); showToast({ title: 'Workspace removed', detail: 'Its files remain on disk.' }); }}
         onAutoCommitChange={async (id, enabled) => { await setSetting(`workspace:${id}:autoCommitOnSave`, enabled); if (id === workspace.current?.id) storageProvider.enableGitSync(enabled); showToast({ title: enabled ? 'Auto-commit enabled' : 'Manual commits enabled' }); }}
       />
+      <SettingsModal open={settingsSection !== null} section={settingsSection ?? 'general'} currentWorkspace={workspace.current} workspaces={workspace.workspaces} onSectionChange={setSettingsSection} onClose={() => setSettingsSection(null)} onToast={showToast} />
       <WorkspaceSwitchDialog open={!!switchTarget && !saveForWorkspaceSwitch} workspaceName={switchTarget?.name ?? ''} saving={switchSaving} onCancel={() => setSwitchTarget(null)} onDiscard={() => { if (switchTarget) void performWorkspaceSwitch(switchTarget, true); }} onSaveAll={() => void saveAllForWorkspaceSwitch()} />
       <McpApprovalDialog workspaceId={workspace.current.id} onToast={showToast} />
       <SecretReviewDialog review={collaboration.secretReview} busy={collaboration.secretReviewBusy} error={collaboration.secretReviewError} onComplete={(choice) => void collaboration.completeSecretReview(choice)} />

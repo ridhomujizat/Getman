@@ -16,6 +16,7 @@ use crate::{
         },
         workspace,
     },
+    windows,
 };
 
 use activity_view::{activity_csv, redact_activity};
@@ -60,6 +61,7 @@ pub fn mcp_set_global_state(
         let timestamp = crate::db::now();
         connection.execute("UPDATE mcp_sessions SET ended_at=?1,end_reason='server_disabled' WHERE ended_at IS NULL", [timestamp]).map_err(|error| error.to_string())?;
         connection.execute("UPDATE mcp_approvals SET decision='cancelled',decided_at=?1 WHERE decision='pending'", [timestamp]).map_err(|error| error.to_string())?;
+        windows::release_all_mcp_approvals(&app);
     }
     let _ = app.emit("mcp-state-changed", ());
     Ok(())
@@ -239,6 +241,15 @@ pub fn mcp_decide_approval(
         return Err("This action can only be approved once".into());
     }
     approvals::decide(&connection, &approval_id, &decision)?;
+    let has_pending = approvals::list_pending(&connection, approval.workspace_id.as_deref())?
+        .into_iter()
+        .any(|pending| pending.workspace_id == approval.workspace_id);
+    drop(connection);
+    if !has_pending {
+        if let Some(workspace_id) = approval.workspace_id.as_deref() {
+            let _ = windows::release_mcp_approval(&app, workspace_id);
+        }
+    }
     let _ = app.emit("mcp-approval-changed", ());
     Ok(())
 }

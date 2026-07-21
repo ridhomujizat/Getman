@@ -6,7 +6,7 @@ use crate::mcp::{
     workspace,
 };
 
-use super::{text, with_connection, ToolContext, ToolError};
+use super::{integer, text, with_connection, ToolContext, ToolError};
 
 pub fn call(context: &ToolContext<'_>) -> Result<Value, ToolError> {
     match context.tool_name {
@@ -49,8 +49,12 @@ fn list_workspaces(context: &ToolContext<'_>) -> Result<Value, ToolError> {
     let records = with_connection(context.app, workspace::workspaces).map_err(internal)?;
     let mut output = Vec::new();
     for record in records {
-        if authorize(context, Some(&record.id), None).is_ok() {
-            output.push(json!({"id":record.id,"name":record.name,"syncType":record.sync_type,"capability":"read"}));
+        let capability = with_connection(context.app, |connection| {
+            policy::workspace_capability(connection, context.session, &record.id)
+        })
+        .map_err(internal)?;
+        if capability != Capability::Deny {
+            output.push(json!({"id":record.id,"name":record.name,"syncType":record.sync_type,"capability":capability.as_str()}));
         }
     }
     Ok(page("workspaces", output, context.arguments, 50))
@@ -201,11 +205,9 @@ fn list_environments(context: &ToolContext<'_>) -> Result<Value, ToolError> {
 
 fn page(key: &str, values: Vec<Value>, arguments: &Value, default_limit: usize) -> Value {
     let total = values.len();
-    let offset = arguments.get("offset").and_then(Value::as_u64).unwrap_or(0) as usize;
-    let limit = arguments
-        .get("limit")
-        .and_then(Value::as_u64)
-        .unwrap_or(default_limit as u64)
+    let offset = integer(arguments, "offset").unwrap_or(0).max(0) as usize;
+    let limit = integer(arguments, "limit")
+        .unwrap_or(default_limit as i64)
         .clamp(1, 200) as usize;
     let items = values
         .into_iter()

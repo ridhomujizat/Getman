@@ -132,4 +132,5 @@ export interface McpWorkspaceProps {
   currentWorkspace: WorkspaceRecord;
   workspaces: WorkspaceRecord[];
   onToast: (message: { title: string; detail?: string; tone?: 'success' | 'error' }) => void;
+  embedded?: boolean;
 }

@@ -71,4 +71,4 @@ export function ActivityTab({ workspaces, onToast }: { workspaces: WorkspaceReco
 const shortTool = (tool: string) => tool.replace(/^tesapi_/, '');
 const shortId = (id: string) => id.length > 14 ? `${id.slice(0, 7)}…${id.slice(-5)}` : id;
 const formatTime = (time: number) => new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit', month: 'short', day: 'numeric' }).format(time);
-const toolNames = ['tesapi_list_workspaces','tesapi_list_collections','tesapi_search_requests','tesapi_get_collection_documentation','tesapi_get_request','tesapi_list_environments','tesapi_create_request_draft','tesapi_update_request_draft','tesapi_get_request_draft','tesapi_save_request_draft','tesapi_execute_request'];
+const toolNames = ['tesapi_list_workspaces','tesapi_list_collections','tesapi_create_collection','tesapi_create_folder','tesapi_search_requests','tesapi_get_collection_documentation','tesapi_get_request','tesapi_list_environments','tesapi_create_request_draft','tesapi_update_request_draft','tesapi_get_request_draft','tesapi_save_request_draft','tesapi_execute_request'];

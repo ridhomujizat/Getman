@@ -3,6 +3,8 @@ mod drafts;
 mod execute;
 mod read;
 mod save;
+mod structure;
+mod write;
 
 use serde_json::Value;
 use tauri::{AppHandle, Emitter, Manager};
@@ -97,6 +99,7 @@ pub async fn call(
         "tesapi_create_request_draft"
         | "tesapi_update_request_draft"
         | "tesapi_get_request_draft" => drafts::call(&context),
+        "tesapi_create_collection" | "tesapi_create_folder" => structure::call(&context).await,
         "tesapi_save_request_draft" => save::call(&context).await,
         "tesapi_execute_request" => execute::call(&context).await,
         _ => Err(ToolError::new(
@@ -177,5 +180,40 @@ pub fn text<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
 }
 
 pub fn integer(value: &Value, key: &str) -> Option<i64> {
-    value.get(key).and_then(Value::as_i64)
+    match value.get(key)? {
+        Value::Number(number) => number.as_i64(),
+        Value::String(number) => number.parse().ok(),
+        _ => None,
+    }
+}
+
+pub fn object_value(value: &Value, key: &str) -> Option<Value> {
+    match value.get(key)? {
+        object @ Value::Object(_) => Some(object.clone()),
+        Value::String(object) => serde_json::from_str::<Value>(object)
+            .ok()
+            .filter(Value::is_object),
+        _ => None,
+    }
+}
+
+#[cfg(test)]
+mod argument_tests {
+    use serde_json::json;
+
+    #[test]
+    fn integer_should_accept_string_encoded_number() {
+        assert_eq!(
+            super::integer(&json!({"revision":"7"}), "revision"),
+            Some(7)
+        );
+    }
+
+    #[test]
+    fn object_value_should_accept_string_encoded_json() {
+        assert_eq!(
+            super::object_value(&json!({"patch":"{\"method\":\"GET\"}"}), "patch"),
+            Some(json!({"method":"GET"}))
+        );
+    }
 }

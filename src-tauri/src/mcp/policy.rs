@@ -114,6 +114,30 @@ pub fn evaluate(
     })
 }
 
+pub fn workspace_capability(
+    connection: &Connection,
+    session: &AuthenticatedSession,
+    workspace_id: &str,
+) -> Result<Capability, String> {
+    for required in [Capability::Execute, Capability::Draft, Capability::Read] {
+        if evaluate(
+            connection,
+            session,
+            PolicyContext {
+                workspace_id: Some(workspace_id),
+                collection_id: None,
+                environment_id: None,
+                required,
+            },
+        )?
+        .allowed
+        {
+            return Ok(required);
+        }
+    }
+    Ok(Capability::Deny)
+}
+
 fn scope_capability(
     connection: &Connection,
     client_id: &str,
@@ -260,5 +284,15 @@ mod tests {
         )
         .unwrap();
         assert!(decision.reasons.contains(&"READ_ONLY_MODE".into()));
+    }
+
+    #[test]
+    fn workspace_capability_should_report_draft_access() {
+        let (connection, session) = setup();
+        connection.execute_batch("INSERT INTO mcp_policies VALUES ('workspace',NULL,'w',NULL,NULL,'draft',NULL,NULL,NULL,0,0);").unwrap();
+        assert_eq!(
+            super::workspace_capability(&connection, &session, "w").unwrap(),
+            Capability::Draft
+        );
     }
 }

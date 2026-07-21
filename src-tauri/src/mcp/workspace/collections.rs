@@ -64,6 +64,25 @@ pub fn list_collections(root: &Path) -> Result<Vec<WorkspaceCollectionOption>, S
     Ok(records)
 }
 
+pub fn insert_into_folder(nodes: &mut [Value], folder_id: &str, node: Value) -> bool {
+    for item in nodes {
+        if item.get("id").and_then(Value::as_str) == Some(folder_id)
+            && item.get("type").and_then(Value::as_str) == Some("folder")
+        {
+            if let Some(children) = item.get_mut("children").and_then(Value::as_array_mut) {
+                children.push(node);
+                return true;
+            }
+        }
+        if let Some(children) = item.get_mut("children").and_then(Value::as_array_mut) {
+            if insert_into_folder(children, folder_id, node.clone()) {
+                return true;
+            }
+        }
+    }
+    false
+}
+
 fn request_nodes(nodes: &[Value], prefix: &str, output: &mut Vec<(String, String)>) {
     for node in nodes {
         let name = node

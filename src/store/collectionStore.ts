@@ -10,6 +10,7 @@ interface State {
   collectionsById: Record<string, { collectionId: string; name: string; nodesById: Record<string, FlatNode>; childIdsByParent: Record<string, string[]> }>;
   expandedIds: Record<string, boolean>;
   initialize: () => Promise<void>;
+  refreshSummaries: () => Promise<void>;
   loadCollection: (id: string) => Promise<void>;
   reloadCollection: (id: string) => Promise<void>;
   loadAll: () => Promise<void>;
@@ -74,6 +75,7 @@ export const useCollectionStore = create<State>((set, get) => ({
     const summaries = await storageProvider.listCollections();
     set({ initialized: true, summaries });
   },
+  refreshSummaries: async () => set({ summaries: await storageProvider.listCollections() }),
   loadCollection: async (id) => {
     if (get().collectionsById[id]) return;
     const normalized = normalizeCollection(await storageProvider.loadCollection(id));

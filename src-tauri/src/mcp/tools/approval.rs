@@ -5,7 +5,11 @@ use tauri::Emitter;
 
 use crate::{
     db::now,
-    mcp::store::{activity, approvals},
+    mcp::{
+        store::{activity, approvals},
+        workspace,
+    },
+    windows,
 };
 
 use super::{with_connection, ToolContext, ToolError};
@@ -34,6 +38,22 @@ pub async fn request(
         )
     })
     .map_err(internal)?;
+    if let Some(workspace_id) = workspace_id {
+        let workspace = with_connection(context.app, |connection| {
+            workspace::workspace(connection, workspace_id)
+        })
+        .map_err(internal)?;
+        if let Err(error) =
+            windows::present_mcp_approval(context.app, workspace_id, &workspace.name)
+        {
+            let _ = windows::release_mcp_approval(context.app, workspace_id);
+            let _ = with_connection(context.app, |connection| {
+                approvals::expire(connection, &approval.id)
+            });
+            let _ = context.app.emit("mcp-approval-changed", ());
+            return Err(ToolError::new("APPROVAL_UI_UNAVAILABLE", error));
+        }
+    }
     let _ = context.app.emit("mcp-approval-changed", ());
     loop {
         let current = with_connection(context.app, |connection| {
@@ -59,6 +79,7 @@ pub async fn request(
                 let _ = with_connection(context.app, |connection| {
                     approvals::expire(connection, &approval.id)
                 });
+                release_window_if_idle(context, workspace_id);
                 let _ = context.app.emit("mcp-approval-changed", ());
                 return Err(ToolError::new(
                     "APPROVAL_TIMEOUT",
@@ -67,6 +88,19 @@ pub async fn request(
             }
             _ => tokio::time::sleep(Duration::from_millis(200)).await,
         }
+    }
+}
+
+fn release_window_if_idle(context: &ToolContext<'_>, workspace_id: Option<&str>) {
+    let Some(workspace_id) = workspace_id else {
+        return;
+    };
+    let has_pending = with_connection(context.app, |connection| {
+        approvals::list_pending(connection, Some(workspace_id)).map(|pending| !pending.is_empty())
+    })
+    .unwrap_or(true);
+    if !has_pending {
+        let _ = windows::release_mcp_approval(context.app, workspace_id);
     }
 }
 

@@ -107,6 +107,7 @@ body.layout-resizing { user-select: none; }
 body.layout-resizing.resize-column, body.layout-resizing.resize-column * { cursor: col-resize !important; }
 body.layout-resizing.resize-row, body.layout-resizing.resize-row * { cursor: row-resize !important; }
 .sidebar-header { position: relative; display: flex; align-items: center; gap: 4px; min-height: 45px; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+.sidebar-footer { display: flex; min-height: 43px; align-items: center; padding: 7px 9px; border-top: 1px solid var(--border); background: var(--bg-panel); }.sidebar-footer button { display: grid; width: 28px; height: 28px; place-items: center; border-radius: 6px; color: var(--text-muted); }.sidebar-footer button:hover { background: var(--bg-elevated); color: var(--accent); }
 .icon-button { display: grid; width: 28px; height: 28px; place-items: center; border-radius: var(--radius); color: var(--text-muted); }
 .icon-button:hover, .icon-button.active { background: var(--bg-elevated); color: var(--accent); }
 .sidebar-add { margin-left: auto; }
