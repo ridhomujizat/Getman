@@ -15,6 +15,7 @@ import type { ToastMessage } from '../Toast';
 import { VariablesPanel } from '../VariablesPanel';
 import { useRequestVariables } from '../../store/variableStatus';
 import { OPEN_VARIABLES_EVENT } from '../VariablePopover';
+import { syncPathVariables } from '../../lib/pathVariables';
 
 type Tab = 'params' | 'headers' | 'body' | 'auth';
 
@@ -32,7 +33,7 @@ const activeCount = (rows: { key: string; enabled: boolean }[]) =>
 export function RequestBuilder({ onSend, onCancel, onToast, onSave, onCloseTab }: Props) {
   const [tab, setTab] = useState<Tab>('params');
   const [variablesOpen, setVariablesOpen] = useState(false);
-  const { request, tabs: openTabs, activeTabId, focusTab, setParams, setHeaders, setBody, setAuth, createRequest } = useRequestStore();
+  const { request, tabs: openTabs, activeTabId, focusTab, setParams, setPathVariables, setHeaders, setBody, setAuth, createRequest } = useRequestStore();
   const summaries = useCollectionStore((state) => state.summaries);
   const environmentFile = useEnvironmentStore((state) => state.file);
   const setActiveEnvironment = useEnvironmentStore((state) => state.setActive);
@@ -42,7 +43,8 @@ export function RequestBuilder({ onSend, onCancel, onToast, onSave, onCloseTab }
     ? summaries.find((summary) => summary.id === activeRequestTab.origin?.collectionId)?.name
     : null;
 
-  const paramN = activeCount(request.params);
+  const pathVariables = syncPathVariables(request.url, request.pathVariables);
+  const paramN = activeCount(request.params) + activeCount(pathVariables);
   const headerN = activeCount(request.headers);
   const requestVariableStatuses = useRequestVariables(request);
 
@@ -121,7 +123,16 @@ export function RequestBuilder({ onSend, onCancel, onToast, onSave, onCloseTab }
       </div>
 
       <div className="pane-body request-pane">
-        {tab === 'params' && <KeyValueEditor rows={request.params} onChange={setParams} />}
+        {tab === 'params' && <div className="params-editor">
+          <section className="params-section">
+            <h3>Query Params</h3>
+            <KeyValueEditor rows={request.params} onChange={setParams} />
+          </section>
+          <section className="params-section">
+            <h3>Path Variables</h3>
+            <KeyValueEditor rows={pathVariables} onChange={setPathVariables} readOnlyKeys allowDelete={false} />
+          </section>
+        </div>}
         {tab === 'headers' && <KeyValueEditor rows={request.headers} onChange={setHeaders} />}
         {tab === 'body' && <BodyEditor body={request.body} onChange={setBody} />}
         {tab === 'auth' && <AuthEditor auth={request.auth} onChange={setAuth} />}

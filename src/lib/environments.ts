@@ -47,6 +47,7 @@ export function resolveRequest(request: TesApiRequest, environment: KeyValue[]):
       ...request,
       url: substitute(request.url, variables, unresolved),
       params: rows(request.params, variables, unresolved) ?? [],
+      pathVariables: rows(request.pathVariables, variables, unresolved),
       headers: rows(request.headers, variables, unresolved) ?? [],
       body: { ...request.body, raw: substitute(request.body.raw ?? '', variables, unresolved), formData: rows(request.body.formData, variables, unresolved) },
       auth: {

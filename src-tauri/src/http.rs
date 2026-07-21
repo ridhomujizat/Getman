@@ -1,4 +1,4 @@
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 use serde::{Deserialize, Serialize};
 
@@ -66,6 +66,8 @@ pub struct TesApiRequest {
     #[serde(default)]
     pub params: Vec<KeyValue>,
     #[serde(default)]
+    pub path_variables: Vec<KeyValue>,
+    #[serde(default)]
     pub headers: Vec<KeyValue>,
     pub body: Body,
     pub auth: Auth,
@@ -130,7 +132,6 @@ pub async fn execute_request(
         } else {
             reqwest::redirect::Policy::none()
         })
-        .timeout(Duration::from_secs(30))
         .build()
         .map_err(|e| classify(&e))?;
 
@@ -147,7 +148,8 @@ pub async fn execute_request(
         }
     }
 
-    let mut url = reqwest::Url::parse(&req.url)
+    let resolved_url = crate::http_path::substitute_path_variables(&req.url, &req.path_variables);
+    let mut url = reqwest::Url::parse(&resolved_url)
         .map_err(|e| HttpError::InvalidUrl(format!("Invalid URL: {e}")))?;
     url.query_pairs_mut().clear().extend_pairs(&query);
     let mut builder = client.request(method, url);

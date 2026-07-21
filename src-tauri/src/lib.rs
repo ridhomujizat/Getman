@@ -14,6 +14,7 @@ mod git_transport;
 mod git_ui_commands;
 mod git_worktree;
 mod http;
+mod http_path;
 pub mod mcp;
 mod registry_commands;
 mod storage;

@@ -3,6 +3,8 @@ import type { TesApiRequest, TesApiResponse, KeyValue, Method, RequestOrigin, Re
 import { isTabDirty, normalizeForCompare } from '../lib/collections.ts';
 import { buildUrl, emptyRow, parseParams, withTrailingBlank } from '../lib/params.ts';
 import { uid } from '../lib/id.ts';
+import { syncPathVariables } from '../lib/pathVariables.ts';
+import { normalizeRequestShape } from '../lib/requestNormalization.ts';
 
 export function newRequest(): TesApiRequest {
   return {
@@ -17,11 +19,12 @@ export function newRequest(): TesApiRequest {
 }
 
 function newTab(request = newRequest(), origin: RequestOrigin | null = null): RequestTab {
+  const normalized = normalizeRequestShape(request);
   return {
     id: uid(),
-    draft: request,
+    draft: normalized,
     origin,
-    savedSnapshot: origin ? normalizeForCompare(request) : null,
+    savedSnapshot: origin ? normalizeForCompare(normalized) : null,
   };
 }
 
@@ -35,6 +38,7 @@ interface State {
   setMethod: (method: Method) => void;
   setUrl: (url: string) => void;
   setParams: (params: KeyValue[]) => void;
+  setPathVariables: (pathVariables: KeyValue[]) => void;
   setHeaders: (headers: KeyValue[]) => void;
   setBody: (body: TesApiRequest['body']) => void;
   setAuth: (auth: TesApiRequest['auth']) => void;
@@ -73,11 +77,20 @@ export const useRequestStore = create<State>((set, get) => ({
   error: null,
   loading: false,
   setMethod: (method) => set((state) => updateActive(state, { ...state.request, method })),
-  setUrl: (url) => set((state) => updateActive(state, { ...state.request, url, params: parseParams(url) })),
+  setUrl: (url) => set((state) => updateActive(state, {
+    ...state.request,
+    url,
+    params: parseParams(url),
+    pathVariables: syncPathVariables(url, state.request.pathVariables),
+  })),
   setParams: (params) => set((state) => {
     const rows = withTrailingBlank(params);
     return updateActive(state, { ...state.request, params: rows, url: buildUrl(state.request.url, rows) });
   }),
+  setPathVariables: (pathVariables) => set((state) => updateActive(state, {
+    ...state.request,
+    pathVariables: syncPathVariables(state.request.url, pathVariables),
+  })),
   setHeaders: (headers) => set((state) => updateActive(state, { ...state.request, headers: withTrailingBlank(headers) })),
   setBody: (body) => set((state) => updateActive(state, {
     ...state.request,
@@ -87,7 +100,7 @@ export const useRequestStore = create<State>((set, get) => ({
   setResponse: (response) => set({ response }),
   setError: (error) => set({ error }),
   setLoading: (loading) => set({ loading }),
-  replaceRequest: (request) => set((state) => ({ ...updateActive(state, request), response: null, error: null })),
+  replaceRequest: (request) => set((state) => ({ ...updateActive(state, normalizeRequestShape(request)), response: null, error: null })),
   createRequest: () => {
     const tab = newTab();
     set((state) => ({ tabs: [...state.tabs, tab], activeTabId: tab.id, request: tab.draft, response: null, error: null }));
@@ -145,14 +158,17 @@ export const useRequestStore = create<State>((set, get) => ({
     };
   }),
   restoreSession: (session) => {
-    const tabs = session.tabs ?? [];
+    const tabs = (session.tabs ?? []).map((tab) => {
+      const draft = normalizeRequestShape(tab.draft);
+      return { ...tab, draft, savedSnapshot: tab.origin ? normalizeForCompare(draft) : tab.savedSnapshot };
+    });
     const active = tabs.find((tab) => tab.id === session.activeTabId) ?? tabs[0];
     set({ tabs, activeTabId: active?.id ?? '', request: active?.draft ?? newRequest(), response: null, error: null, loading: false });
   },
   refreshSavedRequest: (origin, request, name) => set((state) => {
     const tabs = state.tabs.map((tab) => {
       if (tab.origin?.collectionId !== origin.collectionId || tab.origin.nodeId !== origin.nodeId || isTabDirty(tab)) return tab;
-      const draft = { ...request, name };
+      const draft = normalizeRequestShape({ ...request, name });
       return { ...tab, draft, savedSnapshot: normalizeForCompare(draft) };
     });
     const active = tabs.find((tab) => tab.id === state.activeTabId);
@@ -161,7 +177,7 @@ export const useRequestStore = create<State>((set, get) => ({
   reloadSavedRequest: (origin, request, name) => set((state) => {
     const tabs = state.tabs.map((tab) => {
       if (tab.origin?.collectionId !== origin.collectionId || tab.origin.nodeId !== origin.nodeId) return tab;
-      const draft = { ...request, name };
+      const draft = normalizeRequestShape({ ...request, name });
       return { ...tab, draft, savedSnapshot: normalizeForCompare(draft) };
     });
     const active = tabs.find((tab) => tab.id === state.activeTabId);

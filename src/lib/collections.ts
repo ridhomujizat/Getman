@@ -81,6 +81,7 @@ export function normalizeForCompare(request: TesApiRequest): string {
     method: request.method,
     url: request.url,
     params: stripRows(request.params),
+    ...(request.pathVariables?.length ? { pathVariables: stripRows(request.pathVariables) } : {}),
     headers: stripRows(request.headers),
     body: {
       type: request.body.type,

@@ -72,5 +72,9 @@ roundTrip(request({
 
 assert.match(toCurl(request({ method: 'POST', body: { type: 'text', raw: "it's fine" } })), /'it'\\''s fine'/);
 assert.doesNotMatch(toCurl(request({})), /-X GET/);
+assert.match(toCurl(request({
+  url: 'https://example.com/users/:id',
+  pathVariables: [row('id', 'Ada Lovelace/42')],
+})), /https:\/\/example\.com\/users\/Ada%20Lovelace%2F42/);
 
 console.log('export.test.ts: all assertions passed');

@@ -97,7 +97,7 @@ pub(super) fn definitions() -> Vec<Tool> {
         ),
         tool(
             "tesapi_create_request_draft",
-            "Create an unsaved request draft. This does not modify collections.",
+            "Create an unsaved request draft. Use {{baseUrl}} for environment variables; use :templateId plus pathVariables for path parameters. Set body.type when raw or formData is present. Populated params, headers, pathVariables, and formData rows are enabled automatically when enabled is omitted. This does not modify collections.",
             &[
                 ("workspaceId", "string"),
                 ("collectionId", "string"),
@@ -110,7 +110,7 @@ pub(super) fn definitions() -> Vec<Tool> {
         ),
         tool(
             "tesapi_update_request_draft",
-            "Apply a structured patch to a revisioned unsaved draft.",
+            "Apply a structured patch to a revisioned unsaved draft. Path parameters use :name plus pathVariables, never {{name}}; body.type must match raw or formData content. Populated rows are enabled automatically when enabled is omitted.",
             &[
                 ("draftId", "string"),
                 ("revision", "integer"),

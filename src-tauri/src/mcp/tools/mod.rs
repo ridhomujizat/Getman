@@ -1,7 +1,10 @@
 mod approval;
+mod body_normalization;
 mod drafts;
 mod execute;
+mod path_templates;
 mod read;
+mod request_normalization;
 mod save;
 mod structure;
 mod write;

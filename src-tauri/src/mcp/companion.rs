@@ -76,7 +76,7 @@ impl ServerHandler for CompanionServer {
     fn get_info(&self) -> ServerInfo {
         ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
             .with_server_info(Implementation::new("tesapi-mcp", env!("CARGO_PKG_VERSION")).with_title("TesAPI MCP Server").with_description("Safely exposes allowed TesAPI API collections to local AI clients."))
-            .with_instructions("TesAPI is deny-by-default. Secret values are never returned; saves and risky requests require approval in TesAPI.")
+            .with_instructions("TesAPI is deny-by-default. Secret values are never returned; saves and risky requests require approval in TesAPI. URL templates use {{name}} only for environment variables, such as {{baseUrl}}. Endpoint path parameters use :name plus a pathVariables row, for example {{baseUrl}}/qc/template/:templateId/duplicate. Never write a path parameter as {{templateId}}. Request bodies should set body.type to json, text, form-data, or x-www-form-urlencoded when raw or formData is present. Params, headers, pathVariables, and formData rows may omit id and enabled; TesAPI assigns an id and enables populated rows automatically.")
     }
 
     async fn list_tools(

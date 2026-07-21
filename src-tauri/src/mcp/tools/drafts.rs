@@ -9,7 +9,10 @@ use crate::mcp::{
 };
 
 use super::read::required;
-use super::{integer, object_value, text, with_connection, ToolContext, ToolError};
+use super::{
+    integer, object_value, path_templates, request_normalization, text, with_connection,
+    ToolContext, ToolError,
+};
 
 pub fn call(context: &ToolContext<'_>) -> Result<Value, ToolError> {
     match context.tool_name {
@@ -50,7 +53,7 @@ fn create(context: &ToolContext<'_>) -> Result<Value, ToolError> {
     let collection_id = text(context.arguments, "collectionId");
     let request_id = text(context.arguments, "requestId");
     authorize(context, workspace_id, collection_id)?;
-    let request = if let (Some(collection_id), Some(request_id)) = (collection_id, request_id) {
+    let mut request = if let (Some(collection_id), Some(request_id)) = (collection_id, request_id) {
         let record = with_connection(context.app, |connection| {
             workspace::workspace(connection, workspace_id)
         })
@@ -70,6 +73,8 @@ fn create(context: &ToolContext<'_>) -> Result<Value, ToolError> {
     } else {
         json!({"id":"","name":"Untitled request","method":"GET","url":"","params":[],"headers":[],"body":{"type":"none"},"auth":{"type":"none"}})
     };
+    path_templates::normalize(&mut request);
+    request_normalization::normalize(&mut request);
     validate_request(&request)?;
     let draft = with_connection(context.app, |connection| {
         drafts::create(
@@ -110,7 +115,7 @@ fn update(context: &ToolContext<'_>) -> Result<Value, ToolError> {
     for (key, value) in patch {
         if !matches!(
             key.as_str(),
-            "name" | "method" | "url" | "params" | "headers" | "body" | "auth"
+            "name" | "method" | "url" | "params" | "pathVariables" | "headers" | "body" | "auth"
         ) {
             return Err(ToolError::new(
                 "INVALID_INPUT",
@@ -119,6 +124,8 @@ fn update(context: &ToolContext<'_>) -> Result<Value, ToolError> {
         }
         request.insert(key.clone(), value.clone());
     }
+    path_templates::normalize(&mut draft.request);
+    request_normalization::normalize(&mut draft.request);
     validate_request(&draft.request)?;
     let updated = with_connection(context.app, |connection| {
         drafts::update(connection, draft_id, revision, &draft.request)

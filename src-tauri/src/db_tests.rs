@@ -5,7 +5,10 @@ use std::{
 
 use rusqlite::Connection;
 
-use crate::db::{configure, delete_workspace, migrate_json};
+use crate::{
+    db::{configure, delete_workspace, migrate_json},
+    mcp::schema::SCHEMA_VERSION,
+};
 
 fn temp(name: &str) -> std::path::PathBuf {
     std::env::temp_dir().join(format!(
@@ -30,7 +33,7 @@ fn migrates_legacy_registry_once_and_sets_version() {
         connection
             .pragma_query_value(None, "user_version", |row| row.get::<_, i64>(0))
             .unwrap(),
-        2
+        SCHEMA_VERSION
     );
     assert_eq!(
         connection
