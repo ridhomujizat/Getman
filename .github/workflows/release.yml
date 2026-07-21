@@ -37,9 +37,13 @@ jobs:
         with:
           targets: ${{ matrix.target }}
       - run: npm ci
-      - run: npm run check:version
-        env:
-          RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+      - name: Check release version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            GITHUB_REF_NAME="${{ inputs.tag }}" npm run check:version
+          else
+            npm run check:version
+          fi
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
