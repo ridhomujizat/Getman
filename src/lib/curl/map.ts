@@ -89,7 +89,7 @@ function decodeBasic(value: string): Auth | null {
 
 function addHeader(state: MapState, value = ''): void {
   const split = value.indexOf(':');
-  const key = (split < 0 ? value : value.slice(0, split)).trim();
+  const key = (split < 0 ? value.replace(/;$/, '') : value.slice(0, split)).trim();
   const headerValue = split < 0 ? '' : value.slice(split + 1).trim();
   if (!key) return;
 

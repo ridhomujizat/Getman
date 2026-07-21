@@ -56,6 +56,7 @@ assert.equal(form.body.formData?.[1].value, 'a=b');
 assert.deepEqual(parsed(`curl -u 'ada:secret:part' https://example.com`).auth, { type: 'basic', username: 'ada', password: 'secret:part' });
 assert.deepEqual(parsed(`curl -H 'Authorization: Bearer token' https://example.com`).auth, { type: 'bearer', token: 'token' });
 assert.deepEqual(parsed(`curl -H 'Authorization: Basic YWRhOnNlY3JldA==' https://example.com`).auth, { type: 'basic', username: 'ada', password: 'secret' });
+assert.deepEqual(shape(`curl -H 'Referer;' https://example.com`).headers, [{ key: 'Referer', value: '', enabled: true }]);
 
 const getData = parsed(`curl 'https://example.com/search?existing=1' -G -d 'q=get man' --data-urlencode 'tag=a&b'`);
 assert.equal(getData.method, 'GET');

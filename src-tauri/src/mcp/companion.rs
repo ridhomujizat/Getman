@@ -1,12 +1,6 @@
 mod tool_definitions;
 
-use std::{
-    collections::HashMap,
-    env,
-    process::{Command, Stdio},
-    sync::Arc,
-    time::Duration,
-};
+use std::{collections::HashMap, env, sync::Arc};
 
 use interprocess::local_socket::tokio::{prelude::*, Stream};
 #[cfg(not(windows))]
@@ -54,7 +48,9 @@ impl CompanionServer {
             arguments: Value::Null,
             protocol_version: Some("2025-11-25".into()),
         };
-        let response = send_with_launch(&endpoint, &hello).await?;
+        let response = send(&endpoint, &hello)
+            .await
+            .map_err(|error| format!("TesAPI is not running: {error}"))?;
         if !response.ok {
             return Err(response
                 .error_message
@@ -136,23 +132,6 @@ pub fn parse_args() -> Result<(String, String, String), String> {
     ))
 }
 
-async fn send_with_launch(
-    endpoint: &str,
-    request: &BrokerRequest,
-) -> Result<BrokerResponse, String> {
-    if let Ok(response) = send(endpoint, request).await {
-        return Ok(response);
-    }
-    launch_tesapi()?;
-    for _ in 0..25 {
-        tokio::time::sleep(Duration::from_millis(200)).await;
-        if let Ok(response) = send(endpoint, request).await {
-            return Ok(response);
-        }
-    }
-    Err("TesAPI did not become available within 5 seconds".into())
-}
-
 async fn send(endpoint: &str, request: &BrokerRequest) -> Result<BrokerResponse, String> {
     let stream = connect(endpoint).await?;
     let line = serde_json::to_vec(request).map_err(|error| error.to_string())?;
@@ -185,29 +164,5 @@ async fn connect(endpoint: &str) -> Result<Stream, String> {
         .map_err(|error| error.to_string())?;
     Stream::connect(name)
         .await
-        .map_err(|error| error.to_string())
-}
-
-fn launch_tesapi() -> Result<(), String> {
-    let current = env::current_exe().map_err(|error| error.to_string())?;
-    let parent = current
-        .parent()
-        .ok_or("Companion executable has no parent")?;
-    let names = if cfg!(windows) {
-        vec!["tesapi.exe", "TesAPI.exe"]
-    } else {
-        vec!["tesapi", "TesAPI"]
-    };
-    let executable = names
-        .into_iter()
-        .map(|name| parent.join(name))
-        .find(|path| path.exists())
-        .ok_or("TesAPI executable was not found beside tesapi-mcp")?;
-    Command::new(executable)
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()
-        .map(|_| ())
         .map_err(|error| error.to_string())
 }
