@@ -5,6 +5,9 @@ import { createWorkspace, deleteWorkspace, listWorkspaces, openWorkspaceWindow, 
 import { loadWorkspace, type WorkspaceSyncState } from '../lib/workspaces/lifecycle';
 import { storageProvider } from '../lib/storage/localJson';
 import type { ToastMessage } from '../components/Toast';
+import { connectCloudWorkspace } from '../lib/cloud/client';
+import { pullCloudWorkspace } from '../lib/cloud/sync';
+import { useCollectionStore } from '../store/collectionStore';
 
 export function useWorkspaceController(onToast: (message: ToastMessage) => void) {
   const [current, setCurrent] = useState<WorkspaceRecord | null>(null);
@@ -23,7 +26,7 @@ export function useWorkspaceController(onToast: (message: ToastMessage) => void)
       setWorkspaces(rows);
       setSyncState(result.syncState);
       setReady(true);
-      if (result.warning) onToast({ title: 'Workspace opened with a Git warning', detail: result.warning, tone: 'error' });
+      if (result.warning) onToast({ title: 'Workspace opened with a sync warning', detail: result.warning, tone: 'error' });
     }).catch((error) => {
       if (!cancelled) {
         setBootError(String(error));
@@ -46,7 +49,7 @@ export function useWorkspaceController(onToast: (message: ToastMessage) => void)
       setCurrent(workspace);
       setSyncState(result.syncState);
       await refresh();
-      if (result.warning) onToast({ title: 'Workspace opened with a Git warning', detail: result.warning, tone: 'error' });
+      if (result.warning) onToast({ title: 'Workspace opened with a sync warning', detail: result.warning, tone: 'error' });
     } finally {
       setReady(true);
     }
@@ -54,6 +57,10 @@ export function useWorkspaceController(onToast: (message: ToastMessage) => void)
 
   const create = useCallback(async (input: CreateWorkspaceInput) => {
     const workspace = await createWorkspace(input);
+    if (workspace.syncType === 'cloud' && input.connectionUrl) {
+      try { await connectCloudWorkspace(workspace.id, input.connectionUrl, input.deviceName || 'TesAPI desktop'); }
+      catch (error) { await deleteWorkspace(workspace.id); throw error; }
+    }
     await refresh();
     return workspace;
   }, [refresh]);
@@ -71,7 +78,15 @@ export function useWorkspaceController(onToast: (message: ToastMessage) => void)
   }, [current?.id]);
 
   const retrySync = useCallback(async () => {
-    if (!current || current.syncType !== 'git') return;
+    if (!current || !['git', 'cloud'].includes(current.syncType)) return;
+    if (current.syncType === 'cloud') {
+      await pullCloudWorkspace(current);
+      useCollectionStore.getState().reset();
+      await useCollectionStore.getState().initialize();
+      await useCollectionStore.getState().loadAll();
+      setSyncState('synced');
+      return;
+    }
     const result = await invoke<{ state: WorkspaceSyncState }>('git_pull_workspace', {
       rootPath: current.rootPath,
       branch: current.gitBranch ?? 'main',

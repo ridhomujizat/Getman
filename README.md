@@ -56,7 +56,7 @@ Keep TesAPI running while an MCP client is connected. The bundled `tesapi-mcp` p
 - Workspace collections and requests are stored as portable files in the workspace folder you choose.
 - App settings, the workspace registry, and MCP activity are stored locally in the Tauri app-data directory.
 - Secret environment values remain in machine-local files and are excluded from workspace Git history.
-- TesAPI has no hosted account or cloud service. Data reaches a remote only when you send an API request or configure Git synchronization.
+- TesAPI remains local-first. Data reaches a remote only when you send an API request, configure Git synchronization, or connect a workspace to a self-hosted TesAPI Sync server.
 
 ## Development
 

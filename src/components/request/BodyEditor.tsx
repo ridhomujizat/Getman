@@ -31,6 +31,8 @@ export function BodyEditor({ body, onChange }: Props) {
   const isRaw = body.type === 'json' || body.type === 'text';
   const isFormData = body.type === 'form-data';
   const isUrlEncoded = body.type === 'x-www-form-urlencoded';
+  const enabledFormRows = body.formData?.filter((row) => row.enabled && row.key) ?? [];
+  const sendsRawFile = enabledFormRows.length === 1 && enabledFormRows[0].valueType === 'file' && enabledFormRows[0].files?.length === 1;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -52,7 +54,7 @@ export function BodyEditor({ body, onChange }: Props) {
           </button>
         )}
         {body.type === 'form-data' && (
-          <span className="multipart-mode"><Paperclip size={13} /> multipart/form-data</span>
+          <span className="multipart-mode"><Paperclip size={13} /> {sendsRawFile ? 'raw file' : 'multipart/form-data'}</span>
         )}
       </div>
 

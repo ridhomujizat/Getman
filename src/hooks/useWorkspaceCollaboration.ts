@@ -107,7 +107,7 @@ export function useWorkspaceCollaboration(
   const retryPausedSync = useCallback(() => {
     setSyncRetryBusy(true);
     void retrySync()
-      .catch((error) => showToast({ title: 'Git sync retry failed', detail: String(error), tone: 'error' }))
+      .catch((error) => showToast({ title: 'Workspace sync retry failed', detail: String(error), tone: 'error' }))
       .finally(() => setSyncRetryBusy(false));
   }, [retrySync, showToast]);
 

@@ -95,8 +95,8 @@ pub fn registry_create_workspace(
     if name.is_empty() {
         return Err("Workspace name is required.".into());
     }
-    if !matches!(input.sync_type.as_str(), "local" | "git") {
-        return Err("Cloud workspaces are not available yet.".into());
+    if !matches!(input.sync_type.as_str(), "local" | "git" | "cloud") {
+        return Err("Unsupported workspace sync method.".into());
     }
     let root = PathBuf::from(input.root_path.trim());
     if root.as_os_str().is_empty() {
@@ -207,7 +207,23 @@ pub fn registry_delete_workspace(
     state: State<'_, RegistryState>,
 ) -> Result<(), String> {
     let mut connection = connection(&state)?;
-    delete_workspace(&mut connection, &id)
+    let cloud = connection
+        .query_row(
+            "SELECT sync_type='cloud' FROM workspaces WHERE id=?1",
+            [&id],
+            |row| row.get::<_, bool>(0),
+        )
+        .optional()
+        .map_err(|error| error.to_string())?
+        .unwrap_or(false);
+    delete_workspace(&mut connection, &id)?;
+    drop(connection);
+    if cloud {
+        if let Ok(credential) = crate::cloud_support::credential(&id) {
+            let _ = credential.delete_credential();
+        }
+    }
+    Ok(())
 }
 
 #[tauri::command]

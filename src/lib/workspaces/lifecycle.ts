@@ -6,6 +6,7 @@ import { useRequestStore } from '../../store/requestStore';
 import { getSetting, registerWorkspaceWindow, setSetting, setWorkspaceWindowTitle, touchLastOpened } from '../registry';
 import { storageProvider } from '../storage/localJson';
 import { normalizeForCompare } from '../collections';
+import { pullCloudWorkspace } from '../cloud/sync';
 
 export type WorkspaceSyncState = 'idle' | 'synced' | 'paused' | 'conflicted';
 interface GitSyncResult { state: WorkspaceSyncState }
@@ -79,10 +80,23 @@ export async function loadWorkspace(workspace: WorkspaceRecord): Promise<Workspa
       syncState = result.state;
     } catch (error) {
       warning = String(error);
+      syncState = 'paused';
     }
   }
   await useCollectionStore.getState().initialize();
   await useEnvironmentStore.getState().initialize();
+  if (workspace.syncType === 'cloud') {
+    try {
+      await pullCloudWorkspace(workspace);
+      useCollectionStore.getState().reset();
+      await useCollectionStore.getState().initialize();
+      await useCollectionStore.getState().loadAll();
+      syncState = 'synced';
+    } catch (error) {
+      warning = String(error);
+      syncState = 'paused';
+    }
+  }
   const session = await storageProvider.loadSession();
   if (session) {
     useRequestStore.getState().restoreSession(session);

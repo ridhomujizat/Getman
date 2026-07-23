@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowRight, Check, Copy, ExternalLink, GitBranch, HardDrive, Plus, Trash2, X } from 'lucide-react';
+import { ArrowRight, Check, Cloud, Copy, ExternalLink, GitBranch, HardDrive, Plus, Trash2, X } from 'lucide-react';
 import { getSetting } from '../../lib/registry';
 import type { WorkspaceRecord } from '../../types';
 import { WorkspaceDeleteDialog } from './WorkspaceDeleteDialog';
@@ -97,7 +97,7 @@ export function ManageWorkspacesModal({ open, currentId, initialWorkspaceId, wor
           <aside>
             <div className="workspace-manager-list">{workspaces.map((workspace) => <button key={workspace.id} className={workspace.id === selected.id ? 'selected' : ''} onClick={() => setSelectedId(workspace.id)}>
               <span className="workspace-avatar" style={{ '--workspace-color': workspaceColor(workspace.id) } as React.CSSProperties}>{workspace.name.charAt(0).toUpperCase()}</span>
-              <span><b>{workspace.name}</b><small>{workspace.syncType === 'git' ? workspace.gitBranch ?? 'Git workspace' : 'Local workspace'}</small></span>
+              <span><b>{workspace.name}</b><small>{workspace.syncType === 'git' ? workspace.gitBranch ?? 'Git workspace' : workspace.syncType === 'cloud' ? 'Cloud workspace' : 'Local workspace'}</small></span>
               {workspace.id === currentId && <i>Active</i>}
             </button>)}</div>
             <button className="workspace-manager-create" onClick={onCreate}><Plus size={13} /> Create workspace</button>
@@ -110,7 +110,7 @@ export function ManageWorkspacesModal({ open, currentId, initialWorkspaceId, wor
             </section>
             <div className="workspace-manager-fields">
               <label className="workspace-field"><span>Workspace name</span><div className="workspace-manager-name"><input ref={nameRef} value={name} onChange={(event) => setName(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') void saveName(); }} /><button disabled={busy || !name.trim() || name.trim() === selected.name} onClick={() => void saveName()}>Save</button></div></label>
-              <section className="workspace-manager-card"><span>{selected.syncType === 'git' ? <GitBranch size={14} /> : <HardDrive size={14} />}</span><div><b>{selected.syncType === 'git' ? 'Git workspace' : 'Local workspace'}</b><small>{selected.syncType === 'git' ? `Branch: ${selected.gitBranch ?? 'main'}` : 'Stored only on this device'}</small></div></section>
+              <section className="workspace-manager-card"><span>{selected.syncType === 'git' ? <GitBranch size={14} /> : selected.syncType === 'cloud' ? <Cloud size={14} /> : <HardDrive size={14} />}</span><div><b>{selected.syncType === 'git' ? 'Git workspace' : selected.syncType === 'cloud' ? 'Cloud workspace' : 'Local workspace'}</b><small>{selected.syncType === 'git' ? `Branch: ${selected.gitBranch ?? 'main'}` : selected.syncType === 'cloud' ? 'Collections sync through TesAPI Sync' : 'Stored only on this device'}</small></div></section>
               <label className="workspace-field"><span>Workspace folder <small>{copied ? 'Copied' : 'Files remain here if removed'}</small></span><div className="workspace-manager-path"><code>{selected.rootPath}</code><button title="Copy workspace path" onClick={() => void copyPath()}>{copied ? <Check size={13} /> : <Copy size={13} />}</button></div></label>
               {selected.syncType === 'git' && <><label className="workspace-field"><span>Repository</span><div className="workspace-manager-readonly mono">{selected.gitRemote || 'No remote configured'}</div></label><button className="workspace-manager-setting" role="switch" aria-checked={autoCommit} disabled={busy} onClick={() => void toggleAutoCommit()}><span><b>Auto-commit on save</b><small>Commit each saved request automatically.</small></span><i className={autoCommit ? 'enabled' : ''}><em /></i></button></>}
             </div>

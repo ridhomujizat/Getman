@@ -48,6 +48,24 @@ fn default_true() -> bool {
     true
 }
 
+fn single_raw_file(body: &Body) -> Option<&UploadFile> {
+    let rows = body
+        .form_data
+        .as_ref()?
+        .iter()
+        .filter(|row| row.enabled && !row.key.is_empty())
+        .collect::<Vec<_>>();
+    if rows.len() != 1 || rows[0].value_type.as_deref() != Some("file") {
+        return None;
+    }
+    let files = rows[0].files.as_ref()?;
+    (files.len() == 1).then(|| &files[0])
+}
+
+fn send_header(body: &Body, header: &KeyValue) -> bool {
+    body.kind != "form-data" || !header.key.eq_ignore_ascii_case("content-type")
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Body {
@@ -183,7 +201,7 @@ pub async fn execute_request(
     for h in req
         .headers
         .iter()
-        .filter(|h| h.enabled && !h.key.is_empty())
+        .filter(|h| h.enabled && !h.key.is_empty() && send_header(&req.body, h))
     {
         builder = builder.header(&h.key, &h.value);
     }
@@ -225,26 +243,34 @@ pub async fn execute_request(
             builder.form(&pairs)
         }
         "form-data" => {
-            let mut form = reqwest::multipart::Form::new();
-            if let Some(d) = &req.body.form_data {
-                for p in d.iter().filter(|p| p.enabled && !p.key.is_empty()) {
-                    if p.value_type.as_deref() == Some("file") {
-                        for file in p.files.as_ref().into_iter().flatten() {
-                            let mut part = reqwest::multipart::Part::bytes(file.data.clone())
-                                .file_name(file.name.clone());
-                            if !file.mime_type.is_empty() {
-                                part = part.mime_str(&file.mime_type).map_err(|e| {
-                                    HttpError::Unknown(format!("Invalid file type: {e}"))
-                                })?;
+            if let Some(file) = single_raw_file(&req.body) {
+                let mut raw = builder.body(file.data.clone());
+                if !file.mime_type.is_empty() {
+                    raw = raw.header("Content-Type", &file.mime_type);
+                }
+                raw
+            } else {
+                let mut form = reqwest::multipart::Form::new();
+                if let Some(d) = &req.body.form_data {
+                    for p in d.iter().filter(|p| p.enabled && !p.key.is_empty()) {
+                        if p.value_type.as_deref() == Some("file") {
+                            for file in p.files.as_ref().into_iter().flatten() {
+                                let mut part = reqwest::multipart::Part::bytes(file.data.clone())
+                                    .file_name(file.name.clone());
+                                if !file.mime_type.is_empty() {
+                                    part = part.mime_str(&file.mime_type).map_err(|e| {
+                                        HttpError::Unknown(format!("Invalid file type: {e}"))
+                                    })?;
+                                }
+                                form = form.part(p.key.clone(), part);
                             }
-                            form = form.part(p.key.clone(), part);
+                        } else {
+                            form = form.text(p.key.clone(), p.value.clone());
                         }
-                    } else {
-                        form = form.text(p.key.clone(), p.value.clone());
                     }
                 }
+                builder.multipart(form)
             }
-            builder.multipart(form)
         }
         _ => builder,
     };
@@ -273,47 +299,5 @@ pub async fn execute_request(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{http_active_requests, RequestActivity, TesApiRequest};
-
-    #[test]
-    fn tracks_active_requests_until_the_guard_drops() {
-        assert_eq!(http_active_requests(), 0);
-        let activity = RequestActivity::start();
-        assert_eq!(http_active_requests(), 1);
-        drop(activity);
-        assert_eq!(http_active_requests(), 0);
-    }
-
-    #[test]
-    fn deserializes_multipart_file() {
-        let req: TesApiRequest = serde_json::from_value(serde_json::json!({
-            "method": "POST",
-            "url": "https://example.com/upload",
-            "params": [],
-            "headers": [],
-            "body": {
-                "type": "form-data",
-                "formData": [{
-                    "key": "attachment",
-                    "value": "",
-                    "enabled": true,
-                    "valueType": "file",
-                    "files": [{
-                        "name": "receipt.pdf",
-                        "mimeType": "application/pdf",
-                        "sizeBytes": 3,
-                        "data": [1, 2, 3]
-                    }]
-                }]
-            },
-            "auth": { "type": "none" }
-        }))
-        .unwrap();
-
-        let form_data = req.body.form_data.unwrap();
-        let file = &form_data[0].files.as_ref().unwrap()[0];
-        assert_eq!(file.name, "receipt.pdf");
-        assert_eq!(file.data, [1, 2, 3]);
-    }
-}
+#[path = "http_tests.rs"]
+mod tests;

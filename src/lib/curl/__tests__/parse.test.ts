@@ -69,6 +69,15 @@ const multiple = parsed(`curl https://example.com -d 'a=1' --data 'b=2'`);
 assert.equal(multiple.body.type, 'x-www-form-urlencoded');
 assert.deepEqual(multiple.body.formData?.filter((item) => item.key).map(({ key, value }) => [key, value]), [['a', '1'], ['b', '2']]);
 
+const browserMultipart = parseCurl(String.raw`curl 'https://example.com/upload' -H 'Content-Type: multipart/form-data; boundary=----TesApiBoundary' --data-raw $'------TesApiBoundary\r\nContent-Disposition: form-data; name="file"; filename="document.pdf"\r\nContent-Type: application/pdf\r\n\r\n\r\n------TesApiBoundary\r\nContent-Disposition: form-data; name="room_id"\r\n\r\nroom-1\r\n------TesApiBoundary--\r\n'`);
+assert.equal(browserMultipart.ok, true);
+if (browserMultipart.ok) {
+  assert.equal(browserMultipart.request.body.type, 'form-data');
+  assert.deepEqual(browserMultipart.request.body.formData?.filter((item) => item.key).map(({ key, value, valueType }) => [key, value, valueType]), [['file', '', 'file'], ['room_id', 'room-1', undefined]]);
+  assert.equal(browserMultipart.request.headers.some((header) => header.key.toLowerCase() === 'content-type'), false);
+  assert.match(browserMultipart.warnings.join(' '), /Re-select document\.pdf/);
+}
+
 const warned = parseCurl(`curl --retry 2 --mystery https://example.com`);
 assert.equal(warned.ok, true);
 if (warned.ok) assert.deepEqual(warned.warnings, ['Ignored unsupported flag: --retry', 'Ignored unsupported flag: --mystery']);

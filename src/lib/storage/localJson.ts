@@ -15,6 +15,8 @@ import { EnvironmentFiles, type SecretReviewState } from './environmentFiles';
 import { historyPath, isSidecarPath } from './paths';
 import type { StorageProvider } from './provider';
 import { WorkspaceFileClient, WorkspaceWriteConflict } from './workspaceFileClient';
+import { deleteCloudCollection, pushCloudCollection } from '../cloud/client';
+import { isApplyingCloudSnapshot } from '../cloud/state';
 
 const HISTORY_LIMIT = 1000;
 const warningListeners = new Set<(message: string) => void>();
@@ -80,8 +82,21 @@ export class LocalJsonProvider implements StorageProvider {
 
   listCollections(): Promise<CollectionSummary[]> { return this.collections.list(); }
   loadCollection(id: string): Promise<Collection> { return this.collections.load(id); }
-  saveCollection(collection: Collection): Promise<void> { return this.runWrite(() => this.collections.save(collection)); }
-  deleteCollection(id: string): Promise<void> { return this.runWrite(() => this.collections.delete(id)); }
+  async saveCollection(collection: Collection): Promise<void> {
+    await this.runWrite(() => this.collections.save(collection));
+    const workspace = this.currentWorkspace();
+    if (workspace?.syncType === 'cloud' && !isApplyingCloudSnapshot()) {
+      await pushCloudCollection(workspace.id, collection).catch((error) => warn(`Saved locally, but cloud sync failed: ${String(error)}`));
+    }
+  }
+
+  async deleteCollection(id: string): Promise<void> {
+    await this.runWrite(() => this.collections.delete(id));
+    const workspace = this.currentWorkspace();
+    if (workspace?.syncType === 'cloud' && !isApplyingCloudSnapshot()) {
+      await deleteCloudCollection(workspace.id, id).catch((error) => warn(`Deleted locally, but cloud sync failed: ${String(error)}`));
+    }
+  }
 
   async appendHistory(entry: HistoryEntry): Promise<void> {
     const path = historyPath(this.files.rootPath());

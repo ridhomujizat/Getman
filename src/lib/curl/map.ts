@@ -1,6 +1,7 @@
 import type { Auth, BodyType, TesApiRequest, KeyValue, Method } from '../../types/index.ts';
 import { uid } from '../id.ts';
 import { emptyRow, withTrailingBlank } from '../params.ts';
+import { parseRawMultipart } from './multipart.ts';
 
 export type CurlParseResult =
   | { ok: true; request: TesApiRequest; warnings: string[] }
@@ -227,18 +228,22 @@ export function mapCurlArgs(argv: string[]): CurlParseResult {
   if (!state.url) return { ok: false, error: 'cURL command is missing a URL.' };
 
   const raw = state.data.join('&');
+  const contentType = state.headers.find((header) => header.key.toLowerCase() === 'content-type')?.value;
+  const rawMultipart = parseRawMultipart(contentType, raw);
+  for (const filename of rawMultipart?.missingFiles ?? []) warn(state, `Re-select ${filename}; copied cURL does not include file contents.`);
   let params = paramsFromUrl(state.url);
   if (state.forceGet && raw) {
     params = [...params, ...queryRows(raw)];
     state.url = appendQuery(state.url, raw);
   }
-  const bodyType = state.forceGet ? 'none' : inferBodyType(state, raw);
+  const bodyType = state.forceGet ? 'none' : rawMultipart ? 'form-data' : inferBodyType(state, raw);
   const method = state.forceGet
     ? 'GET'
     : state.head
       ? 'HEAD'
       : state.requestedMethod ?? (bodyType === 'none' ? 'GET' : 'POST');
-  const formData = bodyType === 'x-www-form-urlencoded' ? queryRows(raw) : state.formData;
+  const formData = rawMultipart?.rows ?? (bodyType === 'x-www-form-urlencoded' ? queryRows(raw) : state.formData);
+  const headers = rawMultipart ? state.headers.filter((header) => header.key.toLowerCase() !== 'content-type') : state.headers;
 
   return {
     ok: true,
@@ -248,7 +253,7 @@ export function mapCurlArgs(argv: string[]): CurlParseResult {
       method,
       url: state.url,
       params: withTrailingBlank(params),
-      headers: withTrailingBlank(state.headers),
+      headers: withTrailingBlank(headers),
       body: {
         type: bodyType,
         raw: bodyType === 'json' || bodyType === 'text' ? raw : '',

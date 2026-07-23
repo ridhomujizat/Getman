@@ -304,7 +304,7 @@ export default function App() {
       <div className="sidebar-resize-handle" role="separator" aria-orientation="vertical" aria-label="Resize sidebar" aria-valuemin={210} aria-valuemax={440} aria-valuenow={layout.sidebarWidth} tabIndex={0} onPointerDown={layout.startSidebarResize} onDoubleClick={layout.resetSidebar} onKeyDown={(event) => { if (event.key === 'ArrowLeft') layout.resizeSidebarBy(-16); if (event.key === 'ArrowRight') layout.resizeSidebarBy(16); }} />
       <WorkspaceConflictBanner conflict={collaboration.storageConflict} busy={collaboration.storageConflictBusy} onReload={() => void collaboration.resolveStorageConflict(false)} onKeepMine={() => void collaboration.resolveStorageConflict(true)} />
       <WorkspaceReadOnlyBanner reason={storageProvider.readOnlyReason()} />
-      <WorkspaceSyncBanner paused={workspace.syncState === 'paused'} busy={collaboration.syncRetryBusy} onRetry={collaboration.retryPausedSync} />
+      <WorkspaceSyncBanner paused={workspace.syncState === 'paused'} busy={collaboration.syncRetryBusy} mode={workspace.current.syncType} onRetry={collaboration.retryPausedSync} />
       <GitConflictBanner workspaceRoot={workspace.current.rootPath} manifest={collaboration.gitManifest} busy={collaboration.gitConflictBusy} onResolve={(file, choice) => void collaboration.resolveGitConflict(file, choice)} />
       <main className={workspaceView === 'environment' ? 'main environment-main' : `main${hasActiveTab ? ' resizable-main' : ' empty-request-main'}`} style={hasActiveTab && workspaceView === 'api' ? { '--response-height': `${layout.responseHeight}px` } as React.CSSProperties : undefined}>
         {workspaceView === 'environment' ? <EnvironmentEditor onToast={showToast} /> : hasActiveTab ? <>

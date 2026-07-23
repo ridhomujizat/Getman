@@ -4,9 +4,11 @@ import type { WorkspaceRecord, WorkspaceSyncType } from '../../types';
 export interface CreateWorkspaceInput {
   name: string;
   rootPath: string;
-  syncType: Exclude<WorkspaceSyncType, 'cloud'>;
+  syncType: WorkspaceSyncType;
   gitRemote?: string;
   gitBranch?: string;
+  connectionUrl?: string;
+  deviceName?: string;
 }
 
 export const listWorkspaces = () => invoke<WorkspaceRecord[]>('registry_list_workspaces');

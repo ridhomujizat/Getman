@@ -90,6 +90,19 @@ fn deleting_workspace_only_removes_registry_data() {
     connection
         .execute("INSERT INTO settings VALUES ('unrelated','true')", [])
         .unwrap();
+    connection
+        .execute(
+            "UPDATE workspaces SET sync_type='cloud' WHERE id='removed'",
+            [],
+        )
+        .unwrap();
+    connection.execute("INSERT INTO cloud_connections (workspace_id,base_url,remote_workspace_id,device_id,role,connected_at) VALUES ('removed','https://sync.example.com','remote','device','owner',1)", []).unwrap();
+    connection
+        .execute(
+            "INSERT INTO cloud_entity_revisions VALUES ('removed','collection',2)",
+            [],
+        )
+        .unwrap();
 
     delete_workspace(&mut connection, "removed").unwrap();
 
@@ -122,6 +135,26 @@ fn deleting_workspace_only_removes_registry_data() {
             )
             .unwrap(),
         1
+    );
+    assert_eq!(
+        connection
+            .query_row(
+                "SELECT COUNT(*) FROM cloud_connections WHERE workspace_id='removed'",
+                [],
+                |row| row.get::<_, i64>(0)
+            )
+            .unwrap(),
+        0
+    );
+    assert_eq!(
+        connection
+            .query_row(
+                "SELECT COUNT(*) FROM cloud_entity_revisions WHERE workspace_id='removed'",
+                [],
+                |row| row.get::<_, i64>(0)
+            )
+            .unwrap(),
+        0
     );
     assert!(removed_path.join("request.json").exists());
     let _ = fs::remove_dir_all(root);

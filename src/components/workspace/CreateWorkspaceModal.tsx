@@ -16,9 +16,10 @@ const slugify = (value: string) => value.trim().toLowerCase().replace(/[^a-z0-9]
 export function CreateWorkspaceModal({ open: visible, onCancel, onCreate, onCreated }: Props) {
   const [name, setName] = useState('');
   const [location, setLocation] = useState('');
-  const [syncType, setSyncType] = useState<'local' | 'git'>('git');
+  const [syncType, setSyncType] = useState<'local' | 'git' | 'cloud'>('git');
   const [gitRemote, setGitRemote] = useState('');
   const [gitBranch, setGitBranch] = useState('main');
+  const [connectionUrl, setConnectionUrl] = useState('');
   const [autoLocation, setAutoLocation] = useState(true);
   const [error, setError] = useState('');
   const [creating, setCreating] = useState(false);
@@ -26,7 +27,7 @@ export function CreateWorkspaceModal({ open: visible, onCancel, onCreate, onCrea
 
   useEffect(() => {
     if (!visible) return;
-    setName(''); setSyncType('git'); setGitRemote(''); setGitBranch('main'); setError(''); setAutoLocation(true);
+    setName(''); setSyncType('git'); setGitRemote(''); setGitBranch('main'); setConnectionUrl(''); setError(''); setAutoLocation(true);
     void defaultWorkspacePath('workspace').then(setLocation);
     window.setTimeout(() => nameRef.current?.focus(), 30);
   }, [visible]);
@@ -45,9 +46,10 @@ export function CreateWorkspaceModal({ open: visible, onCancel, onCreate, onCrea
   const submit = async () => {
     if (!name.trim()) { setError('Workspace name is required.'); nameRef.current?.focus(); return; }
     if (!location.trim()) { setError('Workspace location is required.'); return; }
+    if (syncType === 'cloud' && !connectionUrl.trim()) { setError('Cloud connection URL is required.'); return; }
     setCreating(true); setError('');
     try {
-      onCreated(await onCreate({ name: name.trim(), rootPath: location.trim(), syncType, gitRemote: syncType === 'git' ? gitRemote.trim() : undefined, gitBranch: syncType === 'git' ? gitBranch.trim() || 'main' : undefined }));
+      onCreated(await onCreate({ name: name.trim(), rootPath: location.trim(), syncType, gitRemote: syncType === 'git' ? gitRemote.trim() : undefined, gitBranch: syncType === 'git' ? gitBranch.trim() || 'main' : undefined, connectionUrl: syncType === 'cloud' ? connectionUrl.trim() : undefined, deviceName: 'TesAPI desktop' }));
     } catch (cause) {
       setError(String(cause).replace(/^Error:\s*/, ''));
     } finally {
@@ -64,12 +66,13 @@ export function CreateWorkspaceModal({ open: visible, onCancel, onCreate, onCrea
         <section className="workspace-sync-section"><div className="workspace-sync-heading"><span>Sync method</span><small>You can change this later</small></div><div className="workspace-sync-cards">
           <button className={syncType === 'local' ? 'selected' : ''} onClick={() => setSyncType('local')}><span><i>{syncType === 'local' && <b />}</i><HardDrive size={14} /> Local only</span><small>Keep everything on this device. No sync.</small></button>
           <button className={syncType === 'git' ? 'selected' : ''} onClick={() => setSyncType('git')}><span><i>{syncType === 'git' && <b />}</i><GitBranch size={14} /> Git</span><small>Sync to a Git repository you control.</small></button>
-          <button className="disabled" disabled><span><i /><Cloud size={14} /> Cloud <em>Soon</em></span><small>Sync across devices in an upcoming release.</small></button>
+          <button className={syncType === 'cloud' ? 'selected' : ''} onClick={() => setSyncType('cloud')}><span><i>{syncType === 'cloud' && <b />}</i><Cloud size={14} /> Cloud</span><small>Connect with a one-time TesAPI Sync URL.</small></button>
         </div></section>
         {syncType === 'git' && <section className="workspace-git-config"><label className="workspace-field"><span>Repository URL <small>Optional</small></span><input className="mono" value={gitRemote} placeholder="git@github.com:acme/mobile-team-api.git" onChange={(event) => setGitRemote(event.target.value)} /></label><div className="workspace-git-row"><label className="workspace-field"><span>Branch</span><input className="mono" value={gitBranch} onChange={(event) => setGitBranch(event.target.value)} /></label><p><Info size={12} /> Saves stay local until you commit or sync them.</p></div></section>}
+        {syncType === 'cloud' && <section className="workspace-git-config"><label className="workspace-field"><span>Connection URL <small>Single use</small></span><input className="mono" value={connectionUrl} placeholder="https://sync.example.com/connect#enrollment=..." onChange={(event) => setConnectionUrl(event.target.value)} /></label><p><Info size={12} /> The enrollment secret is exchanged once and the device credential is stored in your system keychain.</p></section>}
         {error && <div className="save-modal-error">{error}</div>}
       </div>
-      <footer><button className="modal-cancel" disabled={creating} onClick={onCancel}>Cancel</button><button className="modal-save" disabled={creating || !name.trim() || !location.trim()} onClick={() => void submit()}>{creating ? <span className="spinner" /> : <Plus size={14} />}{creating ? 'Creating…' : 'Create workspace'}</button></footer>
+      <footer><button className="modal-cancel" disabled={creating} onClick={onCancel}>Cancel</button><button className="modal-save" disabled={creating || !name.trim() || !location.trim() || (syncType === 'cloud' && !connectionUrl.trim())} onClick={() => void submit()}>{creating ? <span className="spinner" /> : <Plus size={14} />}{creating ? 'Creating…' : 'Create workspace'}</button></footer>
     </section>
   </div>;
 }

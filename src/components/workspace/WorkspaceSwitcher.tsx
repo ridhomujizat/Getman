@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, ChevronsUpDown, ExternalLink, GitBranch, HardDrive, Plus, RefreshCw, Replace, Settings2, SquarePen } from 'lucide-react';
+import { Check, ChevronsUpDown, Cloud, ExternalLink, GitBranch, HardDrive, Plus, RefreshCw, Replace, Settings2, SquarePen } from 'lucide-react';
 import type { WorkspaceRecord } from '../../types';
 
 interface Props {
@@ -75,7 +75,7 @@ export function WorkspaceSwitcher({ current, workspaces, onCreate, onOpenHere, o
         <span className="workspace-avatar" style={{ '--workspace-color': avatarColor(current.id) } as React.CSSProperties}>{current.name.charAt(0).toUpperCase()}</span>
         <span className="workspace-current-name">{current.name}</span><ChevronsUpDown size={13} />
       </button>
-      {current.syncType === 'git' ? <button className={`workspace-sync-badge git-trigger${gitDirtyCount ? ' dirty' : ''}`} onClick={onGitMenu} title="Git workspace menu"><GitBranch size={11} />{gitBranch ?? current.gitBranch ?? 'main'}{gitBusy ? <span className="spinner tiny-spinner" /> : gitDirtyCount > 0 ? <b>{gitDirtyCount}</b> : null}</button> : <span className="workspace-sync-badge"><HardDrive size={11} />local</span>}
+      {current.syncType === 'git' ? <button className={`workspace-sync-badge git-trigger${gitDirtyCount ? ' dirty' : ''}`} onClick={onGitMenu} title="Git workspace menu"><GitBranch size={11} />{gitBranch ?? current.gitBranch ?? 'main'}{gitBusy ? <span className="spinner tiny-spinner" /> : gitDirtyCount > 0 ? <b>{gitDirtyCount}</b> : null}</button> : <span className="workspace-sync-badge">{current.syncType === 'cloud' ? <Cloud size={11} /> : <HardDrive size={11} />}{current.syncType}</span>}
     </div>
     {open && <div className="workspace-popover" role="menu">
       <div className="workspace-popover-label">WORKSPACES</div>

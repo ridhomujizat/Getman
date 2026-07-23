@@ -1,3 +1,5 @@
+mod cloud;
+mod cloud_support;
 mod db;
 #[cfg(test)]
 mod db_tests;
@@ -64,6 +66,13 @@ pub fn run() {
             registry_commands::registry_rename_workspace,
             registry_commands::registry_delete_workspace,
             registry_commands::registry_default_workspace_path,
+            cloud::cloud_connect,
+            cloud::cloud_status,
+            cloud::cloud_snapshot,
+            cloud::cloud_accept_collection_revision,
+            cloud::cloud_push_collection,
+            cloud::cloud_delete_collection,
+            cloud::cloud_disconnect,
             windows::register_workspace_window,
             windows::set_workspace_window_title,
             windows::open_workspace_window,

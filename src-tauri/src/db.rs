@@ -48,7 +48,7 @@ pub(crate) fn configure(connection: &Connection) -> Result<(), String> {
     connection
         .busy_timeout(std::time::Duration::from_secs(5))
         .map_err(|error| error.to_string())?;
-    connection.execute_batch("CREATE TABLE IF NOT EXISTS workspaces (id TEXT PRIMARY KEY, name TEXT NOT NULL, sync_type TEXT NOT NULL CHECK (sync_type IN ('local','git','cloud')), root_path TEXT NOT NULL UNIQUE, git_remote TEXT, git_branch TEXT, created_at INTEGER NOT NULL, last_opened_at INTEGER); CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);").map_err(|error| error.to_string())?;
+    connection.execute_batch("CREATE TABLE IF NOT EXISTS workspaces (id TEXT PRIMARY KEY, name TEXT NOT NULL, sync_type TEXT NOT NULL CHECK (sync_type IN ('local','git','cloud')), root_path TEXT NOT NULL UNIQUE, git_remote TEXT, git_branch TEXT, created_at INTEGER NOT NULL, last_opened_at INTEGER); CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL); CREATE TABLE IF NOT EXISTS cloud_connections (workspace_id TEXT PRIMARY KEY REFERENCES workspaces(id) ON DELETE CASCADE, base_url TEXT NOT NULL, remote_workspace_id TEXT NOT NULL, device_id TEXT NOT NULL, role TEXT NOT NULL, cursor TEXT NOT NULL DEFAULT '', connected_at INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS cloud_entity_revisions (workspace_id TEXT NOT NULL, entity_id TEXT NOT NULL, revision INTEGER NOT NULL, PRIMARY KEY(workspace_id,entity_id), FOREIGN KEY(workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE);").map_err(|error| error.to_string())?;
     mcp::schema::migrate(connection)
 }
 
@@ -197,6 +197,15 @@ pub(crate) fn delete_workspace(connection: &mut Connection, id: &str) -> Result<
             "DELETE FROM settings WHERE key='last_workspace_id' AND value=?1",
             [serde_json::to_string(id).map_err(|error| error.to_string())?],
         )
+        .map_err(|error| error.to_string())?;
+    transaction
+        .execute(
+            "DELETE FROM cloud_entity_revisions WHERE workspace_id=?1",
+            [id],
+        )
+        .map_err(|error| error.to_string())?;
+    transaction
+        .execute("DELETE FROM cloud_connections WHERE workspace_id=?1", [id])
         .map_err(|error| error.to_string())?;
     transaction
         .execute("DELETE FROM mcp_policies WHERE workspace_id=?1", [id])
